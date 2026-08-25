@@ -1,8 +1,8 @@
 # CageErpUI
 
-Frontend base em React, Vite, TypeScript e Tailwind, criado a partir da estrutura do `FlyGates-UI` para evoluir junto com o `CageErpApi`.
+Frontend administrativo em React, Vite, TypeScript e Tailwind, criado para evoluir junto com o `CageErpApi`.
 
-Por enquanto o projeto tem apenas uma tela inicial simples e nenhuma integracao com a API.
+O header possui a opcao **Vendas**, que consulta o historico em `GET /api/CageOutTransaction` e permite abrir o detalhe dos itens de cada compra. A tela trata carregamento, erro e lista vazia.
 
 ## Comandos
 
@@ -15,8 +15,10 @@ npm run lint
 
 ## Ambiente
 
-Use `.env.example` como referencia para configurar a URL da API no futuro:
+Configure a URL base da API, incluindo protocolo e o prefixo `/api`:
 
 ```text
-VITE_API_BASE_URL=http://localhost:5000
+VITE_API_BASE_URL=http://localhost:5000/api
 ```
+
+Em producao, o arquivo `.env` atual usa `https://api.cageouts.com.br/api`.

@@ -1,5 +1,8 @@
 main {
-  background:
-    radial-gradient(circle at 18% 18%, rgba(247, 211, 101, 0.28), transparent 28%),
-    linear-gradient(135deg, #f6f2ea 0%, #eef4ef 48%, #f8efe2 100%);
+  background: #f6f2ea;
+}
+
+button:focus-visible {
+  outline: 2px solid #1f6553;
+  outline-offset: 2px;
 }
