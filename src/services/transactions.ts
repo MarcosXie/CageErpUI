@@ -1,4 +1,3 @@
-import axios from 'axios'
 import { api } from './api'
 import type { TransactionDetail, TransactionSummary } from '../types/transactions'
 
@@ -12,19 +11,4 @@ export async function getTransactions(): Promise<TransactionSummary[]> {
 export async function getTransaction(id: string): Promise<TransactionDetail> {
   const response = await api.get<TransactionDetail>(`${endpoint}/${id}`)
   return response.data
-}
-
-export function getApiErrorMessage(error: unknown): string {
-  if (axios.isAxiosError(error)) {
-    const message = error.response?.data?.message
-    if (typeof message === 'string' && message.trim()) {
-      return message
-    }
-
-    if (error.code === 'ECONNABORTED') {
-      return 'A consulta demorou mais que o esperado. Tente novamente.'
-    }
-  }
-
-  return 'Não foi possível carregar as vendas agora.'
 }
