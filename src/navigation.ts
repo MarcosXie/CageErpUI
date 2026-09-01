@@ -13,11 +13,12 @@ export interface NavModule {
 
 export const navModules: NavModule[] = [
   {
-    title: 'Cage ERP Simulador',
+    title: 'Cage ERP DEMO',
     items: [
       { label: 'Clientes', path: '/clientes', icon: Users },
       { label: 'Unidades', path: '/unidades', icon: Building2 },
-      { label: 'CageOuts', path: '/cageouts', icon: Store },
+      { label: 'Funcionários', path: '/funcionarios', icon: Users },
+      { label: 'Cage ID', path: '/cageouts', icon: Store },
       { label: 'Produtos', path: '/produtos', icon: Package },
     ],
   },
