@@ -46,17 +46,21 @@ export default function FuncionariosPage() {
     void loadData()
   }, [loadData])
 
-  function generateBadgeCode() {
-    if (editingId) {
-      const employee = employees.find((e) => e.id === editingId)
-      if (employee) {
-        setGeneratedBadgeCode(employee.badgeCode)
-        return
-      }
+  function generateBadgeCode(unitId: string) {
+    const unit = units.find((candidate) => candidate.id === unitId)
+    const baseBadgeCode = Number.parseInt(unit?.baseBadgeCode ?? '', 10)
+    if (!unit || Number.isNaN(baseBadgeCode)) {
+      setGeneratedBadgeCode('')
+      return
     }
 
-    const usedCodes = new Set(employees.map((e) => parseInt(e.badgeCode, 10)).filter((n) => !Number.isNaN(n)))
-    let nextCode = 1000
+    const usedCodes = new Set(
+      employees
+        .filter((employee) => employee.unitId === unitId && employee.id !== editingId)
+        .map((employee) => Number.parseInt(employee.badgeCode, 10))
+        .filter((badgeCode) => !Number.isNaN(badgeCode)),
+    )
+    let nextCode = baseBadgeCode
     while (usedCodes.has(nextCode)) {
       nextCode++
     }
@@ -68,10 +72,10 @@ export default function FuncionariosPage() {
   function openModalForCreate() {
     setEditingId(null)
     setSelectedProcedures([])
-    setGeneratedBadgeCode('')
-    setFormData({ name: '', badgeCode: '', password: '', fingerprintData: '', unitId: '', allowedProcedures: [] })
+    const unitId = selectedUnitIdFilter
+    setFormData({ name: '', badgeCode: '', password: '', fingerprintData: '', unitId, allowedProcedures: [] })
+    generateBadgeCode(unitId)
     setIsModalOpen(true)
-    setTimeout(() => generateBadgeCode(), 100)
   }
 
   function openModalForEdit(employee: CageOutEmployeeResponseDto) {
@@ -340,7 +344,11 @@ export default function FuncionariosPage() {
                   id="unitId"
                   required
                   value={formData.unitId}
-                  onChange={(e) => setFormData({ ...formData, unitId: e.target.value })}
+                  onChange={(e) => {
+                    const unitId = e.target.value
+                    setFormData({ ...formData, unitId })
+                    if (!editingId) generateBadgeCode(unitId)
+                  }}
                   disabled={isSubmitting}
                   className="mt-1 w-full border border-[#d8d0c2] px-3 py-2 text-sm text-[#183c34] disabled:bg-[#edf3ee]"
                 >
