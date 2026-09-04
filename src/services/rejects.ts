@@ -8,3 +8,10 @@ export async function getRejects(): Promise<RejectRecord[]> {
     (first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime(),
   )
 }
+
+/** Apaga a mídia (imagem/vídeo) do rejeito no S3 e marca como resolvido. A API recusa (400) motivo Estorno. */
+export async function resolveReject(id: string): Promise<RejectRecord> {
+  const response = await api.patch<RejectRecord>(`/CageOutReject/${id}/resolve`)
+
+  return response.data
+}

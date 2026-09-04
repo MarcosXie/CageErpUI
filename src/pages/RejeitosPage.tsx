@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { CircleAlert, PackageCheck, RefreshCw } from 'lucide-react'
+import { CheckCircle2, CircleAlert, Image as ImageIcon, PackageCheck, RefreshCw, Video as VideoIcon } from 'lucide-react'
 import { getApiErrorMessage } from '../services/api'
-import { getRejects } from '../services/rejects'
-import { rejectReasonLabels, type RejectRecord } from '../types/rejects'
+import { getRejects, resolveReject } from '../services/rejects'
+import { ESTORNO_REASON, rejectReasonLabels, type RejectRecord } from '../types/rejects'
 
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
   dateStyle: 'short',
@@ -26,6 +26,7 @@ export default function RejeitosPage() {
   const [rejects, setRejects] = useState<RejectRecord[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [resolvingId, setResolvingId] = useState<string | null>(null)
 
   const loadRejects = useCallback(async () => {
     setIsLoading(true)
@@ -43,6 +44,24 @@ export default function RejeitosPage() {
   useEffect(() => {
     void loadRejects()
   }, [loadRejects])
+
+  async function handleResolve(id: string) {
+    if (!window.confirm('A imagem/vídeo deste rejeito será apagada permanentemente. Deseja marcar como resolvido?')) {
+      return
+    }
+
+    setResolvingId(id)
+    setError(null)
+
+    try {
+      const updated = await resolveReject(id)
+      setRejects((current) => current.map((item) => (item.id === id ? updated : item)))
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, 'Não foi possível marcar o rejeito como resolvido.'))
+    } finally {
+      setResolvingId(null)
+    }
+  }
 
   return (
     <section>
@@ -90,6 +109,8 @@ export default function RejeitosPage() {
                   <th className="px-5 py-3 text-right font-semibold">Peso esperado</th>
                   <th className="px-5 py-3 text-right font-semibold">Peso real</th>
                   <th className="px-5 py-3 font-semibold">Motivo</th>
+                  <th className="px-5 py-3 font-semibold">Mídia</th>
+                  <th className="px-5 py-3 font-semibold">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -105,6 +126,52 @@ export default function RejeitosPage() {
                       <span className="border border-[#e0d6c4] bg-[#fdfbf7] px-2 py-1 text-xs font-semibold text-[#5e675f]">
                         {rejectReasonLabels[reject.reason] ?? 'Não informado'}
                       </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        {reject.productImageUrl && (
+                          <a
+                            href={reject.productImageUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-1 text-[#1f6553] hover:text-[#123d33]"
+                            title="Ver imagem"
+                          >
+                            <ImageIcon size={16} />
+                          </a>
+                        )}
+                        {reject.productVideoUrl && (
+                          <a
+                            href={reject.productVideoUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-1 text-[#1f6553] hover:text-[#123d33]"
+                            title="Ver vídeo"
+                          >
+                            <VideoIcon size={16} />
+                          </a>
+                        )}
+                        {!reject.productImageUrl && !reject.productVideoUrl && <span className="text-[#a3ab9f]">—</span>}
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      {reject.isResolved ? (
+                        <span className="flex items-center gap-1 text-xs font-semibold text-[#5e675f]">
+                          <CheckCircle2 size={15} />
+                          Resolvido
+                        </span>
+                      ) : reject.reason === ESTORNO_REASON ? (
+                        <span className="text-[#a3ab9f]">—</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => void handleResolve(reject.id)}
+                          disabled={resolvingId === reject.id}
+                          className="text-xs font-semibold text-[#c1444c] hover:text-[#8c2d1c] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Marcar como resolvido
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

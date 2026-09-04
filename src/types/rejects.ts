@@ -10,6 +10,10 @@ export interface RejectRecord {
   productVideo: string
   reason: number
   createdAt: string
+  isResolved: boolean
+  resolvedAt: string | null
+  productImageUrl: string | null
+  productVideoUrl: string | null
 }
 
 export const rejectReasonLabels: Record<number, string> = {
@@ -19,3 +23,6 @@ export const rejectReasonLabels: Record<number, string> = {
   4: 'Não passou no leitor',
   5: 'Não cadastrado',
 }
+
+/** Rejeitos de estorno nunca podem ser marcados como resolvidos (bloqueado também na API). */
+export const ESTORNO_REASON = 3
