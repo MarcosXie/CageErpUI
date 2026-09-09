@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
-import { CheckCircle2, CircleAlert, Image as ImageIcon, PackageCheck, RefreshCw, Video as VideoIcon, X } from 'lucide-react'
+import { useCallback, useDeferredValue, useEffect, useState } from 'react'
+import { CheckCircle2, CircleAlert, Filter, Image as ImageIcon, PackageCheck, RefreshCw, RotateCcw, Video as VideoIcon, X } from 'lucide-react'
 import { getApiErrorMessage } from '../services/api'
 import { getRejects, resolveReject } from '../services/rejects'
 import { ESTORNO_REASON, rejectReasonLabels, type RejectRecord } from '../types/rejects'
@@ -28,12 +28,38 @@ function formatWeight(value: number) {
   return `${weightFormatter.format(value)} kg`
 }
 
+function toLocalDateKey(value: string) {
+  const date = new Date(value)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export default function RejeitosPage() {
   const [rejects, setRejects] = useState<RejectRecord[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [resolvingId, setResolvingId] = useState<string | null>(null)
   const [selectedMedia, setSelectedMedia] = useState<RejectMedia | null>(null)
+  const [checkoutFilter, setCheckoutFilter] = useState('')
+  const [reasonFilter, setReasonFilter] = useState('')
+  const [unresolvedOnly, setUnresolvedOnly] = useState(false)
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const deferredCheckoutFilter = useDeferredValue(checkoutFilter)
+
+  const normalizedCheckoutFilter = deferredCheckoutFilter.trim().toLocaleLowerCase('pt-BR')
+  const filteredRejects = rejects.filter((reject) => {
+    const rejectDate = toLocalDateKey(reject.createdAt)
+
+    return (!normalizedCheckoutFilter || reject.checkoutId.toLocaleLowerCase('pt-BR').includes(normalizedCheckoutFilter))
+      && (!reasonFilter || reject.reason === Number(reasonFilter))
+      && (!unresolvedOnly || !reject.isResolved)
+      && (!startDate || rejectDate >= startDate)
+      && (!endDate || rejectDate <= endDate)
+  })
+  const hasActiveFilters = Boolean(checkoutFilter || reasonFilter || unresolvedOnly || startDate || endDate)
 
   const loadRejects = useCallback(async () => {
     setIsLoading(true)
@@ -91,6 +117,14 @@ export default function RejeitosPage() {
     }
   }
 
+  function clearFilters() {
+    setCheckoutFilter('')
+    setReasonFilter('')
+    setUnresolvedOnly(false)
+    setStartDate('')
+    setEndDate('')
+  }
+
   return (
     <section>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
@@ -116,14 +150,99 @@ export default function RejeitosPage() {
         </div>
       )}
 
+      <div className="mb-5 border border-[#d8d0c2] bg-white px-4 py-4 sm:px-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-[#183c34]">
+            <Filter size={18} />
+            <h2 className="text-sm font-bold">Filtros</h2>
+            <span className="border border-[#d8d0c2] bg-[#f7f4ee] px-2 py-0.5 text-xs font-semibold text-[#657168]">
+              {filteredRejects.length} {filteredRejects.length === 1 ? 'resultado' : 'resultados'}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={clearFilters}
+            disabled={!hasActiveFilters}
+            className="flex h-9 items-center gap-2 px-2 text-xs font-semibold text-[#526158] hover:bg-[#edf3ee] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <RotateCcw size={15} />
+            Limpar filtros
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-12 xl:items-end">
+          <label className="block xl:col-span-3">
+            <span className="mb-1.5 block text-xs font-semibold text-[#526158]">Checkout</span>
+            <input
+              type="search"
+              value={checkoutFilter}
+              onChange={(event) => setCheckoutFilter(event.target.value)}
+              placeholder="Buscar pelo checkout"
+              className="h-11 w-full border border-[#c9d1ca] bg-[#fdfbf7] px-3 text-sm text-[#183c34] outline-none transition-colors placeholder:text-[#98a198] focus:border-[#397663] focus:ring-2 focus:ring-[#397663]/15"
+            />
+          </label>
+
+          <label className="block xl:col-span-2">
+            <span className="mb-1.5 block text-xs font-semibold text-[#526158]">Motivo</span>
+            <select
+              value={reasonFilter}
+              onChange={(event) => setReasonFilter(event.target.value)}
+              className="h-11 w-full border border-[#c9d1ca] bg-[#fdfbf7] px-3 text-sm text-[#183c34] outline-none transition-colors focus:border-[#397663] focus:ring-2 focus:ring-[#397663]/15"
+            >
+              <option value="">Todos os motivos</option>
+              {Object.entries(rejectReasonLabels).map(([reason, label]) => (
+                <option key={reason} value={reason}>{label}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block xl:col-span-2">
+            <span className="mb-1.5 block text-xs font-semibold text-[#526158]">Data inicial</span>
+            <input
+              type="date"
+              value={startDate}
+              max={endDate || undefined}
+              onChange={(event) => setStartDate(event.target.value)}
+              className="h-11 w-full border border-[#c9d1ca] bg-[#fdfbf7] px-3 text-sm text-[#183c34] outline-none transition-colors focus:border-[#397663] focus:ring-2 focus:ring-[#397663]/15"
+            />
+          </label>
+
+          <label className="block xl:col-span-2">
+            <span className="mb-1.5 block text-xs font-semibold text-[#526158]">Data final</span>
+            <input
+              type="date"
+              value={endDate}
+              min={startDate || undefined}
+              onChange={(event) => setEndDate(event.target.value)}
+              className="h-11 w-full border border-[#c9d1ca] bg-[#fdfbf7] px-3 text-sm text-[#183c34] outline-none transition-colors focus:border-[#397663] focus:ring-2 focus:ring-[#397663]/15"
+            />
+          </label>
+
+          <label className="flex h-11 cursor-pointer items-center gap-3 border border-[#c9d1ca] bg-[#fdfbf7] px-3 xl:col-span-3">
+            <input
+              type="checkbox"
+              checked={unresolvedOnly}
+              onChange={(event) => setUnresolvedOnly(event.target.checked)}
+              className="h-4 w-4 accent-[#1f6553]"
+            />
+            <span className="text-sm font-semibold text-[#183c34]">Somente não resolvidos</span>
+          </label>
+        </div>
+      </div>
+
       <div className="overflow-hidden border border-[#d8d0c2] bg-white">
         {isLoading ? (
           <div className="flex min-h-64 items-center justify-center text-sm font-medium text-[#5e675f]">Carregando rejeitos...</div>
-        ) : rejects.length === 0 ? (
+        ) : filteredRejects.length === 0 ? (
           <div className="flex min-h-64 flex-col items-center justify-center px-6 text-center text-[#5e675f]">
             <PackageCheck size={30} className="mb-3 text-[#849088]" />
-            <p className="font-semibold text-[#183c34]">Nenhum rejeito registrado.</p>
-            <p className="mt-1 text-sm">Os itens recusados no checkout aparecerão aqui.</p>
+            <p className="font-semibold text-[#183c34]">
+              {rejects.length === 0 ? 'Nenhum rejeito registrado.' : 'Nenhum rejeito encontrado.'}
+            </p>
+            <p className="mt-1 text-sm">
+              {rejects.length === 0 ? 'Os itens recusados no checkout aparecerão aqui.' : 'Revise ou limpe os filtros para ampliar a busca.'}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -142,7 +261,7 @@ export default function RejeitosPage() {
                 </tr>
               </thead>
               <tbody>
-                {rejects.map((reject) => (
+                {filteredRejects.map((reject) => (
                   <tr key={reject.id} className="border-t border-[#e8e2d7] text-sm text-[#3e4a42]">
                     <td className="px-5 py-4 font-medium">{formatDate(reject.createdAt)}</td>
                     <td className="px-5 py-4">{reject.checkoutId}</td>
