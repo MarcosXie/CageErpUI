@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { CheckCircle2, CircleAlert, Image as ImageIcon, PackageCheck, RefreshCw, Video as VideoIcon } from 'lucide-react'
+import { CheckCircle2, CircleAlert, Image as ImageIcon, PackageCheck, RefreshCw, Video as VideoIcon, X } from 'lucide-react'
 import { getApiErrorMessage } from '../services/api'
 import { getRejects, resolveReject } from '../services/rejects'
 import { ESTORNO_REASON, rejectReasonLabels, type RejectRecord } from '../types/rejects'
@@ -14,6 +14,12 @@ const weightFormatter = new Intl.NumberFormat('pt-BR', {
   maximumFractionDigits: 3,
 })
 
+type RejectMedia = {
+  type: 'image' | 'video'
+  url: string
+  productName: string
+}
+
 function formatDate(value: string) {
   return dateFormatter.format(new Date(value))
 }
@@ -27,6 +33,7 @@ export default function RejeitosPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [resolvingId, setResolvingId] = useState<string | null>(null)
+  const [selectedMedia, setSelectedMedia] = useState<RejectMedia | null>(null)
 
   const loadRejects = useCallback(async () => {
     setIsLoading(true)
@@ -44,6 +51,27 @@ export default function RejeitosPage() {
   useEffect(() => {
     void loadRejects()
   }, [loadRejects])
+
+  useEffect(() => {
+    if (!selectedMedia) {
+      return
+    }
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setSelectedMedia(null)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = previousOverflow
+    }
+  }, [selectedMedia])
 
   async function handleResolve(id: string) {
     if (!window.confirm('A imagem/vídeo deste rejeito será apagada permanentemente. Deseja marcar como resolvido?')) {
@@ -130,26 +158,26 @@ export default function RejeitosPage() {
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         {reject.productImageUrl && (
-                          <a
-                            href={reject.productImageUrl}
-                            target="_blank"
-                            rel="noreferrer"
+                          <button
+                            type="button"
+                            onClick={() => setSelectedMedia({ type: 'image', url: reject.productImageUrl!, productName: reject.productName })}
                             className="flex items-center gap-1 text-[#1f6553] hover:text-[#123d33]"
                             title="Ver imagem"
+                            aria-label={`Ver imagem de ${reject.productName}`}
                           >
                             <ImageIcon size={16} />
-                          </a>
+                          </button>
                         )}
                         {reject.productVideoUrl && (
-                          <a
-                            href={reject.productVideoUrl}
-                            target="_blank"
-                            rel="noreferrer"
+                          <button
+                            type="button"
+                            onClick={() => setSelectedMedia({ type: 'video', url: reject.productVideoUrl!, productName: reject.productName })}
                             className="flex items-center gap-1 text-[#1f6553] hover:text-[#123d33]"
                             title="Ver vídeo"
+                            aria-label={`Ver vídeo de ${reject.productName}`}
                           >
                             <VideoIcon size={16} />
-                          </a>
+                          </button>
                         )}
                         {!reject.productImageUrl && !reject.productVideoUrl && <span className="text-[#a3ab9f]">—</span>}
                       </div>
@@ -180,6 +208,64 @@ export default function RejeitosPage() {
           </div>
         )}
       </div>
+
+      {selectedMedia && (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-[#11231e]/70 px-4 py-6"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setSelectedMedia(null)
+            }
+          }}
+        >
+          <section
+            className="flex max-h-full w-full max-w-5xl flex-col overflow-hidden border border-[#cfc6b7] bg-[#fdfbf7] shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${selectedMedia.type === 'image' ? 'Imagem' : 'Vídeo'} do rejeito de ${selectedMedia.productName}`}
+          >
+            <div className="flex min-h-16 items-center justify-between border-b border-[#d8d0c2] px-5 py-3">
+              <div className="min-w-0 pr-4">
+                <p className="text-sm font-semibold text-[#183c34]">
+                  {selectedMedia.type === 'image' ? 'Imagem do rejeito' : 'Vídeo do rejeito'}
+                </p>
+                <p className="mt-1 truncate text-sm text-[#5e675f]">{selectedMedia.productName}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedMedia(null)}
+                className="flex h-10 w-10 shrink-0 items-center justify-center text-[#536057] hover:bg-[#edf3ee]"
+                aria-label="Fechar mídia"
+                title="Fechar"
+              >
+                <X size={21} />
+              </button>
+            </div>
+
+            <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-[#17211d] p-3 sm:p-5">
+              {selectedMedia.type === 'image' ? (
+                <img
+                  src={selectedMedia.url}
+                  alt={`Registro do rejeito de ${selectedMedia.productName}`}
+                  className="max-h-[calc(100vh-9rem)] max-w-full object-contain"
+                />
+              ) : (
+                <video
+                  key={selectedMedia.url}
+                  src={selectedMedia.url}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="max-h-[calc(100vh-9rem)] max-w-full bg-black"
+                >
+                  Seu navegador não suporta a reprodução deste vídeo.
+                </video>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
     </section>
   )
 }
