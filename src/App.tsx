@@ -4,6 +4,7 @@ import AuthProvider from './auth/AuthProvider'
 import AppLayout from './components/AppLayout'
 import ProtectedRoute from './components/ProtectedRoute'
 import CageOutsPage from './pages/CageOutsPage'
+import CageOutsReportPage from './pages/CageOutsReportPage'
 import ClientesPage from './pages/ClientesPage'
 import FuncionariosPage from './pages/FuncionariosPage'
 import HomePage from './pages/HomePage'
@@ -30,6 +31,7 @@ export default function App() {
               <Route path="produtos" element={<ProdutosPage />} />
               <Route path="relatorios/vendas" element={<VendasPage />} />
               <Route path="relatorios/rejeitos" element={<RejeitosPage />} />
+              <Route path="relatorios/cageouts" element={<CageOutsReportPage />} />
             </Route>
           </Route>
 

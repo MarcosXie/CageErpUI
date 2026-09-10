@@ -6,6 +6,7 @@ export interface CageOutIdDto {
 
 export interface CageOutIdResponseDto extends CageOutIdDto {
   id: string
+  lastSeenAt: string | null
   createdAt: string
   updatedAt: string
 }
