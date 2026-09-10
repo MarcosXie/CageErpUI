@@ -6,9 +6,9 @@ import { getUnits } from '../services/units'
 import type { CageOutIdResponseDto } from '../types/cageIds'
 import type { CageOutUnitResponseDto } from '../types/units'
 
-// Heartbeat do terminal CageOuts é enviado a cada 60s (CageOutIdHeartbeatService).
+// Heartbeat do terminal CageOuts é enviado a cada 20s (CageOutIdHeartbeatService).
 // Consideramos offline após ~2,5 ciclos sem sinal, para tolerar jitter de rede.
-const ONLINE_THRESHOLD_MS = 150_000
+const ONLINE_THRESHOLD_MS = 50_000
 const AUTO_REFRESH_MS = 30_000
 
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
