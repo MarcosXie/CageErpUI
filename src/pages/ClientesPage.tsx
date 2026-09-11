@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { CircleAlert, Edit2, Plus, RefreshCw, Trash2, Users, X } from 'lucide-react'
 import { getApiErrorMessage } from '../services/api'
-import { getClients, createClient, updateClient, deleteClient } from '../services/clients'
+import { getClients, createClient, updateClient, deleteClient, uploadClientBackgroundImage, removeClientBackgroundImage } from '../services/clients'
 import type { CageOutClientResponseDto, CageOutClientDto } from '../types/clients'
+
+const MAX_BACKGROUND_IMAGE_BYTES = 5 * 1024 * 1024
+const ALLOWED_BACKGROUND_IMAGE_TYPES = ['image/jpeg', 'image/png']
 
 export default function ClientesPage() {
   const [clients, setClients] = useState<CageOutClientResponseDto[]>([])
@@ -11,6 +14,8 @@ export default function ClientesPage() {
   const [error, setError] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingClient, setEditingClient] = useState<CageOutClientResponseDto | null>(null)
+  const [isUploadingBackground, setIsUploadingBackground] = useState(false)
   const [formData, setFormData] = useState<CageOutClientDto>({
     name: '',
     email: '',
@@ -37,12 +42,14 @@ export default function ClientesPage() {
 
   function openModalForCreate() {
     setEditingId(null)
+    setEditingClient(null)
     setFormData({ name: '', email: '', isActive: true })
     setIsModalOpen(true)
   }
 
   function openModalForEdit(client: CageOutClientResponseDto) {
     setEditingId(client.id)
+    setEditingClient(client)
     setFormData({
       name: client.name,
       email: client.email,
@@ -54,6 +61,7 @@ export default function ClientesPage() {
   function closeModal() {
     setIsModalOpen(false)
     setEditingId(null)
+    setEditingClient(null)
     setFormData({ name: '', email: '', isActive: true })
   }
 
@@ -92,6 +100,49 @@ export default function ClientesPage() {
       setError(getApiErrorMessage(requestError, 'Não foi possível excluir o cliente.'))
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  async function handleBackgroundFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !editingId) return
+
+    if (!ALLOWED_BACKGROUND_IMAGE_TYPES.includes(file.type)) {
+      setError('Envie uma imagem JPG ou PNG.')
+      return
+    }
+    if (file.size > MAX_BACKGROUND_IMAGE_BYTES) {
+      setError('A imagem deve ter no máximo 5MB.')
+      return
+    }
+
+    setIsUploadingBackground(true)
+    setError(null)
+    try {
+      const updated = await uploadClientBackgroundImage(editingId, file)
+      setEditingClient(updated)
+      setClients((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, 'Não foi possível enviar a imagem de fundo.'))
+    } finally {
+      setIsUploadingBackground(false)
+    }
+  }
+
+  async function handleRemoveBackground() {
+    if (!editingId) return
+
+    setIsUploadingBackground(true)
+    setError(null)
+    try {
+      const updated = await removeClientBackgroundImage(editingId)
+      setEditingClient(updated)
+      setClients((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, 'Não foi possível remover a imagem de fundo.'))
+    } finally {
+      setIsUploadingBackground(false)
     }
   }
 
@@ -245,6 +296,32 @@ export default function ClientesPage() {
                 />
                 <label htmlFor="isActive" className="text-sm font-semibold text-[#183c34]">Ativo</label>
               </div>
+
+              {editingId && (
+                <div>
+                  <span className="block text-sm font-semibold text-[#183c34]">Imagem de fundo (tela Idle do CageOuts)</span>
+                  {editingClient?.backgroundImageUrl && (
+                    <img src={editingClient.backgroundImageUrl} alt="Fundo atual" className="mt-2 h-28 w-full border border-[#d8d0c2] object-cover" />
+                  )}
+                  <div className="mt-2 flex items-center gap-2">
+                    <label className="flex-1 cursor-pointer border border-[#d8d0c2] bg-white px-3 py-2 text-center text-sm font-semibold text-[#183c34] transition-colors hover:bg-[#edf3ee]">
+                      {isUploadingBackground ? 'Enviando...' : editingClient?.backgroundImageUrl ? 'Substituir imagem' : 'Enviar imagem'}
+                      <input type="file" accept="image/jpeg,image/png" onChange={(e) => void handleBackgroundFileChange(e)} disabled={isUploadingBackground} className="hidden" />
+                    </label>
+                    {editingClient?.backgroundImageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => void handleRemoveBackground()}
+                        disabled={isUploadingBackground}
+                        className="border border-[#c1444c] px-3 py-2 text-sm font-semibold text-[#c1444c] transition-colors hover:bg-[#fff1ed] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Remover
+                      </button>
+                    )}
+                  </div>
+                  <span className="mt-1 block text-xs text-[#6c786f]">JPG ou PNG, até 5MB. Substitui a logo na tela Idle do CageOuts.</span>
+                </div>
+              )}
 
               <div className="flex gap-2 pt-4">
                 <button

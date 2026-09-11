@@ -68,7 +68,7 @@ export default function RejeitosPage() {
     try {
       setRejects(await getRejects())
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError, 'Não foi possível carregar os rejeitos agora.'))
+      setError(getApiErrorMessage(requestError, 'Não foi possível carregar as paradas agora.'))
     } finally {
       setIsLoading(false)
     }
@@ -130,7 +130,7 @@ export default function RejeitosPage() {
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#6c786f]">Relatórios</p>
-          <h1 className="mt-1 text-3xl font-bold text-[#183c34]">Rejeitos</h1>
+          <h1 className="mt-1 text-3xl font-bold text-[#183c34]">Paradas</h1>
         </div>
         <button
           type="button"

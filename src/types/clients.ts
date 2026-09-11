@@ -3,6 +3,8 @@ export interface CageOutClient {
   name: string
   email: string
   isActive: boolean
+  backgroundImageKey?: string | null
+  backgroundImageUrl?: string | null
   createdAt?: string
   updatedAt?: string
 }

@@ -20,3 +20,7 @@ export async function updateCageId(id: string, value: CageOutIdDto): Promise<voi
 export async function deleteCageId(id: string): Promise<void> {
   await api.delete(`${endpoint}/${id}`)
 }
+
+export async function unbindCageId(id: string): Promise<void> {
+  await api.post(`${endpoint}/${id}/unbind`)
+}

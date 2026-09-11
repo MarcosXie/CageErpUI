@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { CircleAlert, Edit2, Fingerprint, Plus, RefreshCw, Trash2, X } from 'lucide-react'
 import { getApiErrorMessage } from '../services/api'
-import { createCageId, deleteCageId, getCageIds, updateCageId } from '../services/cageIds'
+import { createCageId, deleteCageId, getCageIds, unbindCageId, updateCageId } from '../services/cageIds'
 import { getUnits } from '../services/units'
 import type { CageOutIdDto, CageOutIdResponseDto } from '../types/cageIds'
 import type { CageOutUnitResponseDto } from '../types/units'
@@ -76,6 +76,20 @@ export default function CageOutsPage() {
     }
   }
 
+  async function handleUnbind(id: string) {
+    if (!window.confirm('Desvincular este Cage ID? Ele voltará a ficar disponível para qualquer terminal.')) return
+    setIsSubmitting(true)
+    setError(null)
+    try {
+      await unbindCageId(id)
+      await loadData()
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, 'Não foi possível desvincular o Cage ID.'))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   const filteredIds = cageIds.filter((item) => !unitFilter || item.unitId === unitFilter)
   const unitName = (unitId: string) => units.find((unit) => unit.id === unitId)?.name ?? 'Unidade não encontrada'
 
@@ -96,7 +110,7 @@ export default function CageOutsPage() {
         {isLoading ? <div className="flex min-h-64 items-center justify-center text-sm text-[#5e675f]">Carregando Cage IDs...</div> : filteredIds.length === 0 ? (
           <div className="flex min-h-64 flex-col items-center justify-center px-6 text-center text-[#5e675f]"><Fingerprint size={32} className="mb-3 text-[#849088]" /><p className="font-semibold text-[#183c34]">Nenhum Cage ID encontrado.</p><p className="mt-1 text-sm">Cadastre um identificador para vincular um terminal a uma unidade.</p></div>
         ) : (
-          <div className="overflow-x-auto"><table className="w-full min-w-[720px] border-collapse text-left"><thead className="bg-[#edf3ee] text-xs uppercase tracking-[0.08em] text-[#526158]"><tr><th className="px-5 py-3 font-semibold">Identificador</th><th className="px-5 py-3 font-semibold">Unidade</th><th className="px-5 py-3 font-semibold">Status</th><th className="px-5 py-3 text-right font-semibold">Ações</th></tr></thead><tbody>{filteredIds.map((item) => <tr key={item.id} className="border-t border-[#e8e2d7] text-sm text-[#3e4a42]"><td className="px-5 py-4 font-mono font-semibold text-[#183c34]">{item.identifier}</td><td className="px-5 py-4">{unitName(item.unitId)}</td><td className="px-5 py-4"><span className={`inline-block px-2 py-1 text-xs font-semibold ${item.isActive ? 'bg-[#dcfce7] text-[#166534]' : 'bg-[#fee2e2] text-[#8c2d1c]'}`}>{item.isActive ? 'Ativo' : 'Inativo'}</span></td><td className="px-5 py-4"><div className="flex justify-end gap-3"><button type="button" onClick={() => { setEditingId(item.id); setFormData({ unitId: item.unitId, identifier: item.identifier, isActive: item.isActive }); setIsModalOpen(true) }} title="Editar" className="text-[#1f6553] hover:text-[#123d33]"><Edit2 size={17} /></button><button type="button" onClick={() => void handleDelete(item.id)} title="Excluir" className="text-[#c1444c] hover:text-[#8c2d1c]"><Trash2 size={17} /></button></div></td></tr>)}</tbody></table></div>
+          <div className="overflow-x-auto"><table className="w-full min-w-[720px] border-collapse text-left"><thead className="bg-[#edf3ee] text-xs uppercase tracking-[0.08em] text-[#526158]"><tr><th className="px-5 py-3 font-semibold">Identificador</th><th className="px-5 py-3 font-semibold">Unidade</th><th className="px-5 py-3 font-semibold">Status</th><th className="px-5 py-3 font-semibold">Vínculo</th><th className="px-5 py-3 text-right font-semibold">Ações</th></tr></thead><tbody>{filteredIds.map((item) => <tr key={item.id} className="border-t border-[#e8e2d7] text-sm text-[#3e4a42]"><td className="px-5 py-4 font-mono font-semibold text-[#183c34]">{item.identifier}</td><td className="px-5 py-4">{unitName(item.unitId)}</td><td className="px-5 py-4"><span className={`inline-block px-2 py-1 text-xs font-semibold ${item.isActive ? 'bg-[#dcfce7] text-[#166534]' : 'bg-[#fee2e2] text-[#8c2d1c]'}`}>{item.isActive ? 'Ativo' : 'Inativo'}</span></td><td className="px-5 py-4">{item.boundAt ? <span className="inline-block px-2 py-1 text-xs font-semibold bg-[#fef9c3] text-[#854d0e]">Vinculado</span> : <span className="inline-block px-2 py-1 text-xs font-semibold bg-[#e5e7eb] text-[#374151]">Disponível</span>}</td><td className="px-5 py-4"><div className="flex justify-end gap-3">{item.boundAt && <button type="button" onClick={() => void handleUnbind(item.id)} disabled={isSubmitting} title="Desvincular" className="text-xs font-semibold text-[#a16207] hover:text-[#854d0e] disabled:opacity-60">Desvincular</button>}<button type="button" onClick={() => { setEditingId(item.id); setFormData({ unitId: item.unitId, identifier: item.identifier, isActive: item.isActive }); setIsModalOpen(true) }} title="Editar" className="text-[#1f6553] hover:text-[#123d33]"><Edit2 size={17} /></button><button type="button" onClick={() => void handleDelete(item.id)} title="Excluir" className="text-[#c1444c] hover:text-[#8c2d1c]"><Trash2 size={17} /></button></div></td></tr>)}</tbody></table></div>
         )}
       </div>
 
