@@ -6,6 +6,7 @@ export interface CageOutIdDto {
 
 export interface CageOutIdResponseDto extends CageOutIdDto {
   id: string
+  cageClusterId: string | null
   lastSeenAt: string | null
   boundAt: string | null
   createdAt: string

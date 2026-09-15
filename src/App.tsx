@@ -3,6 +3,7 @@ import './App.css'
 import AuthProvider from './auth/AuthProvider'
 import AppLayout from './components/AppLayout'
 import ProtectedRoute from './components/ProtectedRoute'
+import CageClustersPage from './pages/CageClustersPage'
 import CageOutsPage from './pages/CageOutsPage'
 import CageOutsReportPage from './pages/CageOutsReportPage'
 import ClientesPage from './pages/ClientesPage'
@@ -26,6 +27,7 @@ export default function App() {
               <Route index element={<HomePage />} />
               <Route path="clientes" element={<ClientesPage />} />
               <Route path="unidades" element={<UnidadesPage />} />
+              <Route path="cageclusters" element={<CageClustersPage />} />
               <Route path="funcionarios" element={<FuncionariosPage />} />
               <Route path="cageouts" element={<CageOutsPage />} />
               <Route path="produtos" element={<ProdutosPage />} />
