@@ -17,10 +17,9 @@ export const navModules: NavModule[] = [
     items: [
       { label: 'Clientes', path: '/clientes', icon: Users },
       { label: 'Unidades', path: '/unidades', icon: Building2 },
-      { label: 'CageCluster', path: '/cageclusters', icon: Workflow },
       { label: 'Funcionários', path: '/funcionarios', icon: Users },
       { label: 'Cage ID', path: '/cageouts', icon: Store },
-      { label: 'Produtos', path: '/produtos', icon: Package },
+      { label: 'CageCluster', path: '/cageclusters', icon: Workflow },
     ],
   },
   {
