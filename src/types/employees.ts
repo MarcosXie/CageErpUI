@@ -1,4 +1,4 @@
-export type AttendantProcedure = 'Refund' | 'Cleaning' | 'Emptying' | 'OpenCage' | 'CloseCage'
+export type AttendantProcedure = 'Refund' | 'Cleaning' | 'Emptying' | 'ReadFailure' | 'AssistedCheckout' | 'OpenCage' | 'CloseCage'
 
 export interface CageOutEmployee {
   id: string
@@ -33,6 +33,8 @@ export const ATTENDANT_PROCEDURES: Array<{ value: AttendantProcedure; label: str
   { value: 'Refund', label: 'Estorno' },
   { value: 'Cleaning', label: 'Limpeza' },
   { value: 'Emptying', label: 'Esvaziar' },
+  { value: 'ReadFailure', label: 'Falha de leitura' },
+  { value: 'AssistedCheckout', label: 'Checkout Assistida' },
   { value: 'OpenCage', label: 'Abrir Cage' },
   { value: 'CloseCage', label: 'Fechar Cage' },
 ]
