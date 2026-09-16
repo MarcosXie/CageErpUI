@@ -1,4 +1,4 @@
-import { Building2, CircleAlert, ReceiptText, Store, Users, Wifi, type LucideIcon } from 'lucide-react'
+import { Building2, CircleAlert, ReceiptText, Store, Users, Wifi, Workflow, type LucideIcon } from 'lucide-react'
 
 export interface NavItem {
   label: string
@@ -19,7 +19,7 @@ export const navModules: NavModule[] = [
       { label: 'Unidades', path: '/unidades', icon: Building2 },
       { label: 'Funcionários', path: '/funcionarios', icon: Users },
       { label: 'Cage ID', path: '/cageouts', icon: Store },
-      // { label: 'CageCluster', path: '/cageclusters', icon: Workflow }, 
+      { label: 'CageCluster', path: '/cageclusters', icon: Workflow }, 
     ],
   },
   {
