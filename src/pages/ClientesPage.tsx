@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
+import Cropper, { type Area } from 'react-easy-crop'
 import { CircleAlert, Edit2, Plus, RefreshCw, Trash2, Users, X } from 'lucide-react'
 import { getApiErrorMessage } from '../services/api'
 import { getClients, createClient, updateClient, deleteClient, uploadClientBackgroundImage, removeClientBackgroundImage } from '../services/clients'
+import { getCroppedImageFile } from '../utils/cropImage'
 import type { CageOutClientResponseDto, CageOutClientDto } from '../types/clients'
 
 const MAX_BACKGROUND_IMAGE_BYTES = 5 * 1024 * 1024
 const ALLOWED_BACKGROUND_IMAGE_TYPES = ['image/jpeg', 'image/png']
+// Proporção da tela do CageOuts em produção (monitor 16:9 paisagem) — mantém consistência com o que é exibido no checkout.
+const BACKGROUND_IMAGE_ASPECT = 16 / 9
 
 export default function ClientesPage() {
   const [clients, setClients] = useState<CageOutClientResponseDto[]>([])
@@ -16,6 +20,11 @@ export default function ClientesPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingClient, setEditingClient] = useState<CageOutClientResponseDto | null>(null)
   const [isUploadingBackground, setIsUploadingBackground] = useState(false)
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
+  const [cropFileName, setCropFileName] = useState('background.jpg')
+  const [crop, setCrop] = useState({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null)
   const [formData, setFormData] = useState<CageOutClientDto>({
     name: '',
     email: '',
@@ -117,12 +126,33 @@ export default function ClientesPage() {
       return
     }
 
+    setError(null)
+    setCropFileName(file.name.replace(/\.[^./]+$/, '') + '.jpg')
+    setCrop({ x: 0, y: 0 })
+    setZoom(1)
+    setCroppedAreaPixels(null)
+
+    const reader = new FileReader()
+    reader.onload = () => setCropImageSrc(typeof reader.result === 'string' ? reader.result : null)
+    reader.readAsDataURL(file)
+  }
+
+  function closeCropModal() {
+    setCropImageSrc(null)
+    setCroppedAreaPixels(null)
+  }
+
+  async function handleConfirmCrop() {
+    if (!cropImageSrc || !croppedAreaPixels || !editingId) return
+
     setIsUploadingBackground(true)
     setError(null)
     try {
-      const updated = await uploadClientBackgroundImage(editingId, file)
+      const croppedFile = await getCroppedImageFile(cropImageSrc, croppedAreaPixels, cropFileName)
+      const updated = await uploadClientBackgroundImage(editingId, croppedFile)
       setEditingClient(updated)
       setClients((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
+      closeCropModal()
     } catch (requestError) {
       setError(getApiErrorMessage(requestError, 'Não foi possível enviar a imagem de fundo.'))
     } finally {
@@ -146,9 +176,12 @@ export default function ClientesPage() {
     }
   }
 
+  const handleCropComplete = useCallback((_area: Area, areaPixels: Area) => {
+    setCroppedAreaPixels(areaPixels)
+  }, [])
+
   return (
-    <section>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <section>      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#6c786f]">Gestão</p>
           <h1 className="mt-1 text-3xl font-bold text-[#183c34]">Clientes</h1>
@@ -341,6 +374,66 @@ export default function ClientesPage() {
                 </button>
               </div>
             </form>
+          </section>
+        </div>
+      )}
+
+      {cropImageSrc && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#11231e]/60 px-4 py-6" role="presentation">
+          <section className="w-full max-w-lg border border-[#cfc6b7] bg-[#fdfbf7] shadow-2xl" role="dialog" aria-modal="true" aria-label="Recortar imagem de fundo">
+            <div className="flex items-center justify-between border-b border-[#d8d0c2] px-5 py-4">
+              <p className="text-sm font-semibold text-[#183c34]">Recortar imagem de fundo</p>
+              <button type="button" onClick={closeCropModal} disabled={isUploadingBackground} className="flex h-9 w-9 items-center justify-center text-[#536057] hover:bg-[#edf3ee] disabled:opacity-60" aria-label="Fechar">
+                <X size={19} />
+              </button>
+            </div>
+
+            <div className="relative h-80 w-full bg-[#11231e]">
+              <Cropper
+                image={cropImageSrc}
+                crop={crop}
+                zoom={zoom}
+                aspect={BACKGROUND_IMAGE_ASPECT}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={handleCropComplete}
+              />
+            </div>
+
+            <div className="space-y-4 p-5">
+              <div>
+                <span className="block text-xs font-semibold text-[#183c34]">Zoom</span>
+                <input
+                  type="range"
+                  min={1}
+                  max={3}
+                  step={0.01}
+                  value={zoom}
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                  disabled={isUploadingBackground}
+                  className="mt-1 w-full"
+                />
+              </div>
+              <p className="text-xs text-[#6c786f]">Ajuste o enquadramento para o formato exibido na tela do CageOuts (16:9).</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handleConfirmCrop()}
+                  disabled={isUploadingBackground || !croppedAreaPixels}
+                  className="flex-1 border border-[#1f6553] bg-[#1f6553] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#123d33] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isUploadingBackground ? 'Enviando...' : 'Confirmar e enviar'}
+                </button>
+                <button
+                  type="button"
+                  onClick={closeCropModal}
+                  disabled={isUploadingBackground}
+                  className="flex-1 border border-[#b9c7bd] bg-white px-4 py-2 text-sm font-semibold text-[#183c34] transition-colors hover:bg-[#edf3ee] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
           </section>
         </div>
       )}
