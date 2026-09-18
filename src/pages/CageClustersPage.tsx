@@ -415,7 +415,6 @@ export default function CageClustersPage() {
                       <td className="px-5 py-4 font-mono text-[#657168]">{cluster.code}</td>
                       <td className="px-5 py-4">{unitNameById.get(cluster.unitId) ?? 'Unidade desconhecida'}</td>
                       <td className="px-5 py-4 align-top">
-                        <span className="font-semibold text-[#183c34]">{orderedMembers.length}</span>
                         {orderedMembers.length > 0 && (
                           <ul className="mt-2 space-y-1">
                             {orderedMembers.map((member) => (
