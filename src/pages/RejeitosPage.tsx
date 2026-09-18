@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CheckCircle2, CircleAlert, Filter, Image as ImageIcon, PackageCheck, RefreshCw, RotateCcw, Video as VideoIcon, X } from 'lucide-react'
 import { getApiErrorMessage } from '../services/api'
 import { getCageIds } from '../services/cageIds'
@@ -65,7 +65,6 @@ export default function RejeitosPage() {
   const [unresolvedOnly, setUnresolvedOnly] = useState(false)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const deferredCheckoutFilter = useDeferredValue(checkoutFilter)
 
   const cageIdByIdentifier = useMemo(() => {
     return new Map(cageIds.map((item) => [item.identifier.trim().toLocaleLowerCase('pt-BR'), item]))
@@ -111,11 +110,31 @@ export default function RejeitosPage() {
       .sort((first, second) => first.name.localeCompare(second.name, 'pt-BR'))
   }, [clientFilter, enrichedRejects, units])
 
-  const normalizedCheckoutFilter = deferredCheckoutFilter.trim().toLocaleLowerCase('pt-BR')
+  const availableCheckouts = useMemo(() => {
+    const checkoutsByKey = new Map<string, string>()
+
+    enrichedRejects
+      .filter((item) => (!clientFilter || item.clientId === clientFilter) && (!unitFilter || item.unitId === unitFilter))
+      .forEach((item) => {
+        const checkoutId = item.checkoutId.trim()
+        if (!checkoutId) {
+          return
+        }
+
+        const key = checkoutId.toLocaleLowerCase('pt-BR')
+        if (!checkoutsByKey.has(key)) {
+          checkoutsByKey.set(key, checkoutId)
+        }
+      })
+
+    return [...checkoutsByKey.values()].sort((first, second) => first.localeCompare(second, 'pt-BR'))
+  }, [clientFilter, enrichedRejects, unitFilter])
+
+  const normalizedCheckoutFilter = checkoutFilter.trim().toLocaleLowerCase('pt-BR')
   const filteredRejects = enrichedRejects.filter((reject) => {
     const rejectDate = toLocalDateKey(reject.createdAt)
 
-    return (!normalizedCheckoutFilter || reject.checkoutId.toLocaleLowerCase('pt-BR').includes(normalizedCheckoutFilter))
+    return (!normalizedCheckoutFilter || reject.checkoutId.trim().toLocaleLowerCase('pt-BR') === normalizedCheckoutFilter)
       && (!clientFilter || reject.clientId === clientFilter)
       && (!unitFilter || reject.unitId === unitFilter)
       && (!reasonFilter || reject.reason === Number(reasonFilter))
@@ -162,6 +181,20 @@ export default function RejeitosPage() {
       setUnitFilter('')
     }
   }, [availableUnits, unitFilter])
+
+  useEffect(() => {
+    if (!checkoutFilter) {
+      return
+    }
+
+    const checkoutStillAvailable = availableCheckouts.some(
+      (checkoutId) => checkoutId.toLocaleLowerCase('pt-BR') === checkoutFilter.toLocaleLowerCase('pt-BR'),
+    )
+
+    if (!checkoutStillAvailable) {
+      setCheckoutFilter('')
+    }
+  }, [availableCheckouts, checkoutFilter])
 
   useEffect(() => {
     if (!selectedMedia) {
@@ -260,17 +293,6 @@ export default function RejeitosPage() {
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-12 xl:items-end">
           <label className="block xl:col-span-2">
-            <span className="mb-1.5 block text-xs font-semibold text-[#526158]">Checkout</span>
-            <input
-              type="search"
-              value={checkoutFilter}
-              onChange={(event) => setCheckoutFilter(event.target.value)}
-              placeholder="Buscar pelo checkout"
-              className="h-11 w-full border border-[#c9d1ca] bg-[#fdfbf7] px-3 text-sm text-[#183c34] outline-none transition-colors placeholder:text-[#98a198] focus:border-[#397663] focus:ring-2 focus:ring-[#397663]/15"
-            />
-          </label>
-
-          <label className="block xl:col-span-2">
             <span className="mb-1.5 block text-xs font-semibold text-[#526158]">Cliente</span>
             <select
               value={clientFilter}
@@ -294,6 +316,20 @@ export default function RejeitosPage() {
               <option value="">Todas as unidades</option>
               {availableUnits.map((unit) => (
                 <option key={unit.id} value={unit.id}>{unit.name}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block xl:col-span-2">
+            <span className="mb-1.5 block text-xs font-semibold text-[#526158]">Checkout</span>
+            <select
+              value={checkoutFilter}
+              onChange={(event) => setCheckoutFilter(event.target.value)}
+              className="h-11 w-full border border-[#c9d1ca] bg-[#fdfbf7] px-3 text-sm text-[#183c34] outline-none transition-colors focus:border-[#397663] focus:ring-2 focus:ring-[#397663]/15"
+            >
+              <option value="">Todos os checkouts</option>
+              {availableCheckouts.map((checkoutId) => (
+                <option key={checkoutId} value={checkoutId}>{checkoutId}</option>
               ))}
             </select>
           </label>
