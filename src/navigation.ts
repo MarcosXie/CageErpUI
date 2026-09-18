@@ -27,7 +27,7 @@ export const navModules: NavModule[] = [
     items: [
       { label: 'Vendas', path: '/relatorios/vendas', icon: ReceiptText },
       { label: 'Paradas', path: '/relatorios/rejeitos', icon: CircleAlert },
-      { label: 'CageOuts', path: '/relatorios/cageouts', icon: Wifi },
+      { label: 'Telemetria', path: '/relatorios/cageouts', icon: Wifi },
     ],
   },
 ]

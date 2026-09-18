@@ -1,8 +1,14 @@
-import { useCallback, useDeferredValue, useEffect, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { CheckCircle2, CircleAlert, Filter, Image as ImageIcon, PackageCheck, RefreshCw, RotateCcw, Video as VideoIcon, X } from 'lucide-react'
 import { getApiErrorMessage } from '../services/api'
+import { getCageIds } from '../services/cageIds'
+import { getClients } from '../services/clients'
 import { getRejects, resolveReject } from '../services/rejects'
+import { getUnits } from '../services/units'
+import type { CageOutIdResponseDto } from '../types/cageIds'
+import type { CageOutClientResponseDto } from '../types/clients'
 import { ESTORNO_REASON, rejectReasonLabels, type RejectRecord } from '../types/rejects'
+import type { CageOutUnitResponseDto } from '../types/units'
 
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
   dateStyle: 'short',
@@ -18,6 +24,13 @@ type RejectMedia = {
   type: 'image' | 'video'
   url: string
   productName: string
+}
+
+type EnrichedRejectRecord = RejectRecord & {
+  unitId: string | null
+  unitName: string | null
+  clientId: string | null
+  clientName: string | null
 }
 
 function formatDate(value: string) {
@@ -38,35 +51,96 @@ function toLocalDateKey(value: string) {
 
 export default function RejeitosPage() {
   const [rejects, setRejects] = useState<RejectRecord[]>([])
+  const [units, setUnits] = useState<CageOutUnitResponseDto[]>([])
+  const [clients, setClients] = useState<CageOutClientResponseDto[]>([])
+  const [cageIds, setCageIds] = useState<CageOutIdResponseDto[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [resolvingId, setResolvingId] = useState<string | null>(null)
   const [selectedMedia, setSelectedMedia] = useState<RejectMedia | null>(null)
   const [checkoutFilter, setCheckoutFilter] = useState('')
+  const [clientFilter, setClientFilter] = useState('')
+  const [unitFilter, setUnitFilter] = useState('')
   const [reasonFilter, setReasonFilter] = useState('')
   const [unresolvedOnly, setUnresolvedOnly] = useState(false)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const deferredCheckoutFilter = useDeferredValue(checkoutFilter)
 
+  const cageIdByIdentifier = useMemo(() => {
+    return new Map(cageIds.map((item) => [item.identifier.trim().toLocaleLowerCase('pt-BR'), item]))
+  }, [cageIds])
+
+  const unitById = useMemo(() => new Map(units.map((unit) => [unit.id, unit])), [units])
+  const clientById = useMemo(() => new Map(clients.map((client) => [client.id, client])), [clients])
+
+  const enrichedRejects = useMemo<EnrichedRejectRecord[]>(() => {
+    return rejects.map((reject) => {
+      const identifierKey = reject.checkoutId.trim().toLocaleLowerCase('pt-BR')
+      const cageId = cageIdByIdentifier.get(identifierKey)
+      const unit = cageId ? unitById.get(cageId.unitId) ?? null : null
+      const client = unit ? clientById.get(unit.clientId) ?? null : null
+
+      return {
+        ...reject,
+        unitId: unit?.id ?? null,
+        unitName: unit?.name ?? null,
+        clientId: client?.id ?? null,
+        clientName: client?.name ?? null,
+      }
+    })
+  }, [clientById, cageIdByIdentifier, rejects, unitById])
+
+  const availableClients = useMemo(() => {
+    const usedClientIds = new Set(enrichedRejects.map((item) => item.clientId).filter((value): value is string => Boolean(value)))
+    return clients
+      .filter((client) => usedClientIds.has(client.id))
+      .sort((first, second) => first.name.localeCompare(second.name, 'pt-BR'))
+  }, [clients, enrichedRejects])
+
+  const availableUnits = useMemo(() => {
+    const usedUnitIds = new Set(
+      enrichedRejects
+        .filter((item) => !clientFilter || item.clientId === clientFilter)
+        .map((item) => item.unitId)
+        .filter((value): value is string => Boolean(value)),
+    )
+
+    return units
+      .filter((unit) => usedUnitIds.has(unit.id) && (!clientFilter || unit.clientId === clientFilter))
+      .sort((first, second) => first.name.localeCompare(second.name, 'pt-BR'))
+  }, [clientFilter, enrichedRejects, units])
+
   const normalizedCheckoutFilter = deferredCheckoutFilter.trim().toLocaleLowerCase('pt-BR')
-  const filteredRejects = rejects.filter((reject) => {
+  const filteredRejects = enrichedRejects.filter((reject) => {
     const rejectDate = toLocalDateKey(reject.createdAt)
 
     return (!normalizedCheckoutFilter || reject.checkoutId.toLocaleLowerCase('pt-BR').includes(normalizedCheckoutFilter))
+      && (!clientFilter || reject.clientId === clientFilter)
+      && (!unitFilter || reject.unitId === unitFilter)
       && (!reasonFilter || reject.reason === Number(reasonFilter))
       && (!unresolvedOnly || !reject.isResolved)
       && (!startDate || rejectDate >= startDate)
       && (!endDate || rejectDate <= endDate)
   })
-  const hasActiveFilters = Boolean(checkoutFilter || reasonFilter || unresolvedOnly || startDate || endDate)
+  const hasActiveFilters = Boolean(checkoutFilter || clientFilter || unitFilter || reasonFilter || unresolvedOnly || startDate || endDate)
 
-  const loadRejects = useCallback(async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true)
     setError(null)
 
     try {
-      setRejects(await getRejects())
+      const [rejectData, clientData, unitData, cageIdData] = await Promise.all([
+        getRejects(),
+        getClients(),
+        getUnits(),
+        getCageIds(),
+      ])
+
+      setRejects(rejectData)
+      setClients(clientData)
+      setUnits(unitData)
+      setCageIds(cageIdData)
     } catch (requestError) {
       setError(getApiErrorMessage(requestError, 'Não foi possível carregar as paradas agora.'))
     } finally {
@@ -75,8 +149,19 @@ export default function RejeitosPage() {
   }, [])
 
   useEffect(() => {
-    void loadRejects()
-  }, [loadRejects])
+    void loadData()
+  }, [loadData])
+
+  useEffect(() => {
+    if (!unitFilter) {
+      return
+    }
+
+    const unitStillAvailable = availableUnits.some((unit) => unit.id === unitFilter)
+    if (!unitStillAvailable) {
+      setUnitFilter('')
+    }
+  }, [availableUnits, unitFilter])
 
   useEffect(() => {
     if (!selectedMedia) {
@@ -119,6 +204,8 @@ export default function RejeitosPage() {
 
   function clearFilters() {
     setCheckoutFilter('')
+    setClientFilter('')
+    setUnitFilter('')
     setReasonFilter('')
     setUnresolvedOnly(false)
     setStartDate('')
@@ -134,7 +221,7 @@ export default function RejeitosPage() {
         </div>
         <button
           type="button"
-          onClick={() => void loadRejects()}
+          onClick={() => void loadData()}
           disabled={isLoading}
           className="flex h-10 items-center gap-2 border border-[#b9c7bd] bg-white px-3 text-sm font-semibold text-[#183c34] transition-colors hover:bg-[#edf3ee] disabled:cursor-not-allowed disabled:opacity-60"
         >
@@ -172,7 +259,7 @@ export default function RejeitosPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-12 xl:items-end">
-          <label className="block xl:col-span-3">
+          <label className="block xl:col-span-2">
             <span className="mb-1.5 block text-xs font-semibold text-[#526158]">Checkout</span>
             <input
               type="search"
@@ -181,6 +268,34 @@ export default function RejeitosPage() {
               placeholder="Buscar pelo checkout"
               className="h-11 w-full border border-[#c9d1ca] bg-[#fdfbf7] px-3 text-sm text-[#183c34] outline-none transition-colors placeholder:text-[#98a198] focus:border-[#397663] focus:ring-2 focus:ring-[#397663]/15"
             />
+          </label>
+
+          <label className="block xl:col-span-2">
+            <span className="mb-1.5 block text-xs font-semibold text-[#526158]">Cliente</span>
+            <select
+              value={clientFilter}
+              onChange={(event) => setClientFilter(event.target.value)}
+              className="h-11 w-full border border-[#c9d1ca] bg-[#fdfbf7] px-3 text-sm text-[#183c34] outline-none transition-colors focus:border-[#397663] focus:ring-2 focus:ring-[#397663]/15"
+            >
+              <option value="">Todos os clientes</option>
+              {availableClients.map((client) => (
+                <option key={client.id} value={client.id}>{client.name}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block xl:col-span-2">
+            <span className="mb-1.5 block text-xs font-semibold text-[#526158]">Unidade</span>
+            <select
+              value={unitFilter}
+              onChange={(event) => setUnitFilter(event.target.value)}
+              className="h-11 w-full border border-[#c9d1ca] bg-[#fdfbf7] px-3 text-sm text-[#183c34] outline-none transition-colors focus:border-[#397663] focus:ring-2 focus:ring-[#397663]/15"
+            >
+              <option value="">Todas as unidades</option>
+              {availableUnits.map((unit) => (
+                <option key={unit.id} value={unit.id}>{unit.name}</option>
+              ))}
+            </select>
           </label>
 
           <label className="block xl:col-span-2">
@@ -219,7 +334,7 @@ export default function RejeitosPage() {
             />
           </label>
 
-          <label className="flex h-11 cursor-pointer items-center gap-3 border border-[#c9d1ca] bg-[#fdfbf7] px-3 xl:col-span-3">
+          <label className="flex h-11 cursor-pointer items-center gap-3 border border-[#c9d1ca] bg-[#fdfbf7] px-3 xl:col-span-2">
             <input
               type="checkbox"
               checked={unresolvedOnly}

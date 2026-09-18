@@ -63,7 +63,7 @@ export default function CageOutsReportPage() {
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#6c786f]">Relatórios</p>
-          <h1 className="mt-1 text-3xl font-bold text-[#183c34]">CageOuts</h1>
+          <h1 className="mt-1 text-3xl font-bold text-[#183c34]">Telemetria</h1>
         </div>
         <div className="flex flex-wrap items-end gap-2">
           <label className="block">
