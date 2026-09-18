@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CircleAlert, Edit2, Layers3, Plus, RefreshCw, Trash2, X } from 'lucide-react'
+import { CircleAlert, Edit2, GripVertical, Layers3, Plus, RefreshCw, Trash2, X } from 'lucide-react'
 import { getApiErrorMessage } from '../services/api'
 import { createCageCluster, deleteCageCluster, getCageClusters, updateCageCluster } from '../services/cageClusters'
 import { getCageIds } from '../services/cageIds'
@@ -20,6 +20,8 @@ type SelectedMember = {
   identifier: string
   boxNumber: number
 }
+
+const END_DROP_TARGET_ID = '__end__'
 
 const emptyForm: CageClusterFormState = {
   unitId: '',
@@ -42,6 +44,15 @@ function moveMemberToPosition(members: SelectedMember[], fromIndex: number, toIn
   return normalizeMemberNumbers(cloned)
 }
 
+function moveMemberToLastPosition(members: SelectedMember[], memberId: string): SelectedMember[] {
+  const fromIndex = members.findIndex((item) => item.cageOutId === memberId)
+  if (fromIndex < 0 || fromIndex === members.length - 1) {
+    return members
+  }
+
+  return moveMemberToPosition(members, fromIndex, members.length - 1)
+}
+
 export default function CageClustersPage() {
   const [clusters, setClusters] = useState<CageClusterResponseDto[]>([])
   const [units, setUnits] = useState<CageOutUnitResponseDto[]>([])
@@ -56,6 +67,7 @@ export default function CageClustersPage() {
   const [selectedMembers, setSelectedMembers] = useState<SelectedMember[]>([])
   const [memberToAddId, setMemberToAddId] = useState<string>('')
   const [draggingMemberId, setDraggingMemberId] = useState<string | null>(null)
+  const [dropTargetMemberId, setDropTargetMemberId] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
     setIsLoading(true)
@@ -99,6 +111,21 @@ export default function CageClustersPage() {
     return item.cageClusterId === editingId
   })
 
+  function buildOrderedMembers(cluster: CageClusterResponseDto): SelectedMember[] {
+    const ordered = cluster.members?.length
+      ? [...cluster.members].sort((first, second) => first.boxNumber - second.boxNumber)
+      : cluster.cageOutIds.map((cageOutId, index) => ({ cageOutId, boxNumber: index + 1 }))
+
+    return ordered.map((member, index) => {
+      const cage = cageIdById.get(member.cageOutId)
+      return {
+        cageOutId: member.cageOutId,
+        identifier: cage?.identifier ?? member.cageOutId,
+        boxNumber: member.boxNumber || index + 1,
+      }
+    })
+  }
+
   function openModalForCreate() {
     setEditingId(null)
     setFormData({
@@ -119,22 +146,7 @@ export default function CageClustersPage() {
       isActive: cluster.isActive,
     })
 
-    const orderedIds = cluster.members?.length
-      ? [...cluster.members]
-          .sort((first, second) => first.boxNumber - second.boxNumber)
-          .map((member) => member.cageOutId)
-      : [...cluster.cageOutIds]
-
-    const hydratedMembers = orderedIds.map((id, index) => {
-      const cage = cageIdById.get(id)
-      return {
-        cageOutId: id,
-        identifier: cage?.identifier ?? id,
-        boxNumber: index + 1,
-      }
-    })
-
-    setSelectedMembers(normalizeMemberNumbers(hydratedMembers))
+    setSelectedMembers(normalizeMemberNumbers(buildOrderedMembers(cluster)))
     setMemberToAddId('')
     setIsModalOpen(true)
   }
@@ -146,6 +158,7 @@ export default function CageClustersPage() {
     setSelectedMembers([])
     setMemberToAddId('')
     setDraggingMemberId(null)
+    setDropTargetMemberId(null)
   }
 
   function handleUnitChange(unitId: string) {
@@ -194,10 +207,18 @@ export default function CageClustersPage() {
 
   function handleMemberDragStart(cageOutId: string) {
     setDraggingMemberId(cageOutId)
+    setDropTargetMemberId(null)
   }
 
-  function handleMemberDragOver(event: React.DragEvent<HTMLLIElement>) {
+  function handleMemberDragOver(targetCageOutId: string, event: React.DragEvent<HTMLLIElement>) {
     event.preventDefault()
+
+    if (!draggingMemberId || draggingMemberId === targetCageOutId) {
+      setDropTargetMemberId(null)
+      return
+    }
+
+    setDropTargetMemberId(targetCageOutId)
   }
 
   function handleMemberDrop(targetCageOutId: string, event: React.DragEvent<HTMLLIElement>) {
@@ -205,6 +226,7 @@ export default function CageClustersPage() {
 
     if (!draggingMemberId || draggingMemberId === targetCageOutId) {
       setDraggingMemberId(null)
+      setDropTargetMemberId(null)
       return
     }
 
@@ -220,10 +242,36 @@ export default function CageClustersPage() {
     })
 
     setDraggingMemberId(null)
+    setDropTargetMemberId(null)
   }
 
   function handleMemberDragEnd() {
     setDraggingMemberId(null)
+    setDropTargetMemberId(null)
+  }
+
+  function handleLastPositionDragOver(event: React.DragEvent<HTMLLIElement>) {
+    event.preventDefault()
+
+    if (!draggingMemberId) {
+      setDropTargetMemberId(null)
+      return
+    }
+
+    setDropTargetMemberId(END_DROP_TARGET_ID)
+  }
+
+  function handleLastPositionDrop(event: React.DragEvent<HTMLLIElement>) {
+    event.preventDefault()
+
+    if (!draggingMemberId) {
+      setDropTargetMemberId(null)
+      return
+    }
+
+    setSelectedMembers((current) => moveMemberToLastPosition(current, draggingMemberId))
+    setDraggingMemberId(null)
+    setDropTargetMemberId(null)
   }
 
   async function handleSubmit(event: React.FormEvent) {
@@ -358,43 +406,59 @@ export default function CageClustersPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredClusters.map((cluster) => (
-                  <tr key={cluster.id} className="border-t border-[#e8e2d7] text-sm text-[#3e4a42]">
-                    <td className="px-5 py-4 font-medium">{cluster.name}</td>
-                    <td className="px-5 py-4 font-mono text-[#657168]">{cluster.code}</td>
-                    <td className="px-5 py-4">{unitNameById.get(cluster.unitId) ?? 'Unidade desconhecida'}</td>
-                    <td className="px-5 py-4">
-                      <span className="font-semibold text-[#183c34]">{cluster.members?.length ?? cluster.cageOutIds.length}</span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className={`inline-block rounded px-2 py-1 text-xs font-semibold ${cluster.isActive ? 'bg-[#dcfce7] text-[#166534]' : 'bg-[#fee2e2] text-[#8c2d1c]'}`}>
-                        {cluster.isActive ? 'Ativo' : 'Inativo'}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => openModalForEdit(cluster)}
-                          disabled={isSubmitting}
-                          className="text-sm font-semibold text-[#1f6553] hover:text-[#123d33] disabled:cursor-not-allowed disabled:opacity-60"
-                          title="Editar"
-                        >
-                          <Edit2 size={17} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void handleDelete(cluster.id)}
-                          disabled={isSubmitting}
-                          className="text-sm font-semibold text-[#c1444c] hover:text-[#8c2d1c] disabled:cursor-not-allowed disabled:opacity-60"
-                          title="Excluir"
-                        >
-                          <Trash2 size={17} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {filteredClusters.map((cluster) => {
+                  const orderedMembers = buildOrderedMembers(cluster)
+
+                  return (
+                    <tr key={cluster.id} className="border-t border-[#e8e2d7] text-sm text-[#3e4a42]">
+                      <td className="px-5 py-4 font-medium">{cluster.name}</td>
+                      <td className="px-5 py-4 font-mono text-[#657168]">{cluster.code}</td>
+                      <td className="px-5 py-4">{unitNameById.get(cluster.unitId) ?? 'Unidade desconhecida'}</td>
+                      <td className="px-5 py-4 align-top">
+                        <span className="font-semibold text-[#183c34]">{orderedMembers.length}</span>
+                        {orderedMembers.length > 0 && (
+                          <ul className="mt-2 space-y-1">
+                            {orderedMembers.map((member) => (
+                              <li key={member.cageOutId} className="flex items-center gap-2 text-xs text-[#526158]">
+                                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded bg-[#edf3ee] px-1.5 font-semibold text-[#1f6553]">
+                                  {member.boxNumber}
+                                </span>
+                                <span className="font-mono">{member.identifier}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className={`inline-block rounded px-2 py-1 text-xs font-semibold ${cluster.isActive ? 'bg-[#dcfce7] text-[#166534]' : 'bg-[#fee2e2] text-[#8c2d1c]'}`}>
+                          {cluster.isActive ? 'Ativo' : 'Inativo'}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openModalForEdit(cluster)}
+                            disabled={isSubmitting}
+                            className="text-sm font-semibold text-[#1f6553] hover:text-[#123d33] disabled:cursor-not-allowed disabled:opacity-60"
+                            title="Editar"
+                          >
+                            <Edit2 size={17} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleDelete(cluster.id)}
+                            disabled={isSubmitting}
+                            className="text-sm font-semibold text-[#c1444c] hover:text-[#8c2d1c] disabled:cursor-not-allowed disabled:opacity-60"
+                            title="Excluir"
+                          >
+                            <Trash2 size={17} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -545,15 +609,30 @@ export default function CageClustersPage() {
                               key={member.cageOutId}
                               draggable={!isSubmitting}
                               onDragStart={() => handleMemberDragStart(member.cageOutId)}
-                              onDragOver={handleMemberDragOver}
+                              onDragOver={(event) => handleMemberDragOver(member.cageOutId, event)}
                               onDrop={(event) => handleMemberDrop(member.cageOutId, event)}
                               onDragEnd={handleMemberDragEnd}
                               className={`flex items-center gap-3 border bg-white px-3 py-2 text-sm text-[#183c34] ${
-                                draggingMemberId === member.cageOutId ? 'border-[#1f6553] opacity-70' : 'border-[#e8e2d7]'
+                                draggingMemberId === member.cageOutId
+                                  ? 'border-[#1f6553] opacity-70'
+                                  : dropTargetMemberId === member.cageOutId
+                                    ? 'border-[#1f6553] bg-[#edf3ee]'
+                                    : 'border-[#e8e2d7]'
                               }`}
                             >
+                              <span
+                                className="inline-flex h-8 w-8 items-center justify-center rounded border border-[#d8d0c2] bg-[#f7f4ef] text-[#6c786f]"
+                                title="Arrastavel"
+                              >
+                                <GripVertical size={14} />
+                              </span>
                               <span className="w-8 text-center text-base font-bold text-[#1f6553]">{member.boxNumber}</span>
                               <span className="flex-1 font-mono font-semibold">{member.identifier}</span>
+                              {dropTargetMemberId === member.cageOutId && (
+                                <span className="rounded bg-[#d1e7db] px-2 py-1 text-[11px] font-semibold text-[#1f6553]">
+                                  Soltar aqui
+                                </span>
+                              )}
                               <button
                                 type="button"
                                 onClick={() => removeSelectedMember(member.cageOutId)}
@@ -564,6 +643,20 @@ export default function CageClustersPage() {
                               </button>
                             </li>
                           ))}
+
+                          {draggingMemberId && (
+                            <li
+                              onDragOver={handleLastPositionDragOver}
+                              onDrop={handleLastPositionDrop}
+                              className={`flex items-center justify-center border border-dashed px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] ${
+                                dropTargetMemberId === END_DROP_TARGET_ID
+                                  ? 'border-[#1f6553] bg-[#edf3ee] text-[#1f6553]'
+                                  : 'border-[#b9c7bd] bg-[#f7f4ef] text-[#6c786f]'
+                              }`}
+                            >
+                              {dropTargetMemberId === END_DROP_TARGET_ID ? 'Soltar na ultima posicao' : 'Arraste aqui para ultima posicao'}
+                            </li>
+                          )}
                         </ul>
                       )}
                     </div>
