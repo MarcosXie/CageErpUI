@@ -281,10 +281,9 @@ export default function CageOutsRealtimePage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[920px] border-collapse text-left">
+              <table className="w-full min-w-[780px] border-collapse text-left">
                 <thead className="bg-[#edf3ee] text-xs uppercase tracking-[0.08em] text-[#526158]">
                   <tr>
-                    <th className="px-4 py-3 font-semibold">Hora</th>
                     <th className="px-4 py-3 font-semibold">Código</th>
                     <th className="px-4 py-3 font-semibold">Produto</th>
                     <th className="px-4 py-3 text-right font-semibold">Qtd.</th>
@@ -297,7 +296,6 @@ export default function CageOutsRealtimePage() {
                 <tbody>
                   {session.items.map((item) => (
                     <tr key={item.itemId} className="border-t border-[#e8e2d7] text-sm text-[#3e4a42]">
-                      <td className="px-4 py-3">{formatDate(item.scannedAt)}</td>
                       <td className="px-4 py-3 font-mono font-semibold text-[#183c34]">{item.productCode}</td>
                       <td className="px-4 py-3">{item.productName}</td>
                       <td className="px-4 py-3 text-right">{item.quantity}</td>
