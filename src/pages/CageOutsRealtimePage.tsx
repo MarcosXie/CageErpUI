@@ -221,104 +221,106 @@ export default function CageOutsRealtimePage() {
         </div>
       )}
 
-      <div className="mb-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <article className="overflow-hidden border border-[#d8d0c2] bg-white">
-          <header className="flex items-center gap-2 border-b border-[#e8e2d7] px-4 py-3 text-sm font-semibold text-[#183c34]">
-            <Camera size={16} />
-            Câmera de foto
-          </header>
-          <div className="flex min-h-[240px] items-center justify-center bg-[#f6f2ea] p-3">
-            {photoImage ? (
-              <img src={photoImage} alt="Snapshot da câmera de foto" className="max-h-[420px] w-full object-contain" />
-            ) : (
-              <p className="text-sm text-[#657168]">Snapshot indisponível no momento.</p>
-            )}
-          </div>
-        </article>
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[0.95fr_1.35fr]">
+        <div className="flex flex-col gap-5">
+          <article className="overflow-hidden border border-[#d8d0c2] bg-white">
+            <header className="flex items-center gap-2 border-b border-[#e8e2d7] px-4 py-3 text-sm font-semibold text-[#183c34]">
+              <Camera size={16} />
+              Câmera de foto
+            </header>
+            <div className="flex min-h-[240px] items-center justify-center bg-[#f6f2ea] p-3">
+              {photoImage ? (
+                <img src={photoImage} alt="Snapshot da câmera de foto" className="max-h-[360px] w-full object-contain" />
+              ) : (
+                <p className="text-sm text-[#657168]">Snapshot indisponível no momento.</p>
+              )}
+            </div>
+          </article>
+
+          <article className="overflow-hidden border border-[#d8d0c2] bg-white">
+            <header className="flex items-center gap-2 border-b border-[#e8e2d7] px-4 py-3 text-sm font-semibold text-[#183c34]">
+              <Video size={16} />
+              Câmera de vídeo
+            </header>
+            <div className="flex min-h-[240px] items-center justify-center bg-[#f6f2ea] p-3">
+              {videoImage ? (
+                <img src={videoImage} alt="Snapshot da câmera de vídeo" className="max-h-[360px] w-full object-contain" />
+              ) : (
+                <p className="text-sm text-[#657168]">Snapshot RTSP indisponível no momento.</p>
+              )}
+            </div>
+          </article>
+        </div>
 
         <article className="overflow-hidden border border-[#d8d0c2] bg-white">
-          <header className="flex items-center gap-2 border-b border-[#e8e2d7] px-4 py-3 text-sm font-semibold text-[#183c34]">
-            <Video size={16} />
-            Câmera de vídeo
+          <header className="border-b border-[#e8e2d7] px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-[#183c34]">Compra em andamento</p>
+              <p className="text-xs text-[#657168]">Última atualização: {formatDate(snapshot?.generatedAt ?? null)}</p>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+              <span className={`inline-flex items-center px-2 py-1 font-semibold ${session?.isActive ? 'bg-[#dcfce7] text-[#166534]' : 'bg-[#eef2f7] text-[#475569]'}`}>
+                {session?.isActive ? 'Sessão ativa' : 'Sem sessão ativa'}
+              </span>
+              <span className="inline-flex items-center bg-[#edf3ee] px-2 py-1 font-semibold text-[#526158]">
+                Checkout: {session?.checkoutId || '-'}
+              </span>
+              <span className="inline-flex items-center bg-[#edf3ee] px-2 py-1 font-semibold text-[#526158]">
+                Itens: {session?.scannedCount ?? 0}
+              </span>
+              <span className="inline-flex items-center bg-[#edf3ee] px-2 py-1 font-semibold text-[#526158]">
+                Aprovados: {session?.approvedCount ?? 0}
+              </span>
+              <span className="inline-flex items-center bg-[#edf3ee] px-2 py-1 font-semibold text-[#526158]">
+                Total: {currencyFormatter.format(session?.currentTotalAmount ?? 0)}
+              </span>
+            </div>
           </header>
-          <div className="flex min-h-[240px] items-center justify-center bg-[#f6f2ea] p-3">
-            {videoImage ? (
-              <img src={videoImage} alt="Snapshot da câmera de vídeo" className="max-h-[420px] w-full object-contain" />
-            ) : (
-              <p className="text-sm text-[#657168]">Snapshot RTSP indisponível no momento.</p>
-            )}
-          </div>
+
+          {!snapshot && isLoading ? (
+            <div className="flex min-h-52 items-center justify-center text-sm font-medium text-[#5e675f]">Carregando sessão ao vivo...</div>
+          ) : !session || session.items.length === 0 ? (
+            <div className="flex min-h-52 items-center justify-center px-6 text-center text-sm text-[#5e675f]">
+              Nenhum item em compra no momento para este CageOut.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[920px] border-collapse text-left">
+                <thead className="bg-[#edf3ee] text-xs uppercase tracking-[0.08em] text-[#526158]">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Hora</th>
+                    <th className="px-4 py-3 font-semibold">Código</th>
+                    <th className="px-4 py-3 font-semibold">Produto</th>
+                    <th className="px-4 py-3 text-right font-semibold">Qtd.</th>
+                    <th className="px-4 py-3 text-right font-semibold">Peso esp.</th>
+                    <th className="px-4 py-3 text-right font-semibold">Peso real</th>
+                    <th className="px-4 py-3 text-right font-semibold">Unitário</th>
+                    <th className="px-4 py-3 font-semibold">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {session.items.map((item) => (
+                    <tr key={item.itemId} className="border-t border-[#e8e2d7] text-sm text-[#3e4a42]">
+                      <td className="px-4 py-3">{formatDate(item.scannedAt)}</td>
+                      <td className="px-4 py-3 font-mono font-semibold text-[#183c34]">{item.productCode}</td>
+                      <td className="px-4 py-3">{item.productName}</td>
+                      <td className="px-4 py-3 text-right">{item.quantity}</td>
+                      <td className="px-4 py-3 text-right">{formatWeight(item.expectedWeightKg)}</td>
+                      <td className="px-4 py-3 text-right">{formatWeight(item.realWeightKg)}</td>
+                      <td className="px-4 py-3 text-right">{item.unitPrice === null ? '-' : currencyFormatter.format(item.unitPrice)}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-block px-2 py-1 text-xs font-semibold ${statusBadgeClass(item.matchStatus)}`}>
+                          {item.matchStatus}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </article>
       </div>
-
-      <article className="overflow-hidden border border-[#d8d0c2] bg-white">
-        <header className="border-b border-[#e8e2d7] px-4 py-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-[#183c34]">Compra em andamento</p>
-            <p className="text-xs text-[#657168]">Última atualização: {formatDate(snapshot?.generatedAt ?? null)}</p>
-          </div>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-            <span className={`inline-flex items-center px-2 py-1 font-semibold ${session?.isActive ? 'bg-[#dcfce7] text-[#166534]' : 'bg-[#eef2f7] text-[#475569]'}`}>
-              {session?.isActive ? 'Sessão ativa' : 'Sem sessão ativa'}
-            </span>
-            <span className="inline-flex items-center bg-[#edf3ee] px-2 py-1 font-semibold text-[#526158]">
-              Checkout: {session?.checkoutId || '-'}
-            </span>
-            <span className="inline-flex items-center bg-[#edf3ee] px-2 py-1 font-semibold text-[#526158]">
-              Itens: {session?.scannedCount ?? 0}
-            </span>
-            <span className="inline-flex items-center bg-[#edf3ee] px-2 py-1 font-semibold text-[#526158]">
-              Aprovados: {session?.approvedCount ?? 0}
-            </span>
-            <span className="inline-flex items-center bg-[#edf3ee] px-2 py-1 font-semibold text-[#526158]">
-              Total: {currencyFormatter.format(session?.currentTotalAmount ?? 0)}
-            </span>
-          </div>
-        </header>
-
-        {!snapshot && isLoading ? (
-          <div className="flex min-h-52 items-center justify-center text-sm font-medium text-[#5e675f]">Carregando sessão ao vivo...</div>
-        ) : !session || session.items.length === 0 ? (
-          <div className="flex min-h-52 items-center justify-center px-6 text-center text-sm text-[#5e675f]">
-            Nenhum item em compra no momento para este CageOut.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[920px] border-collapse text-left">
-              <thead className="bg-[#edf3ee] text-xs uppercase tracking-[0.08em] text-[#526158]">
-                <tr>
-                  <th className="px-4 py-3 font-semibold">Hora</th>
-                  <th className="px-4 py-3 font-semibold">Código</th>
-                  <th className="px-4 py-3 font-semibold">Produto</th>
-                  <th className="px-4 py-3 text-right font-semibold">Qtd.</th>
-                  <th className="px-4 py-3 text-right font-semibold">Peso esp.</th>
-                  <th className="px-4 py-3 text-right font-semibold">Peso real</th>
-                  <th className="px-4 py-3 text-right font-semibold">Unitário</th>
-                  <th className="px-4 py-3 font-semibold">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {session.items.map((item) => (
-                  <tr key={item.itemId} className="border-t border-[#e8e2d7] text-sm text-[#3e4a42]">
-                    <td className="px-4 py-3">{formatDate(item.scannedAt)}</td>
-                    <td className="px-4 py-3 font-mono font-semibold text-[#183c34]">{item.productCode}</td>
-                    <td className="px-4 py-3">{item.productName}</td>
-                    <td className="px-4 py-3 text-right">{item.quantity}</td>
-                    <td className="px-4 py-3 text-right">{formatWeight(item.expectedWeightKg)}</td>
-                    <td className="px-4 py-3 text-right">{formatWeight(item.realWeightKg)}</td>
-                    <td className="px-4 py-3 text-right">{item.unitPrice === null ? '-' : currencyFormatter.format(item.unitPrice)}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-block px-2 py-1 text-xs font-semibold ${statusBadgeClass(item.matchStatus)}`}>
-                        {item.matchStatus}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </article>
     </section>
   )
 }
