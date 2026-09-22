@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, Camera, CircleAlert, RefreshCw, Video, Wifi, WifiOff } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { getApiErrorMessage } from '../services/api'
@@ -16,6 +16,7 @@ const currencyFormatter = new Intl.NumberFormat('pt-BR', {
 })
 
 const AUTO_POLLING_MS = 3_000
+const TRANSIENT_GAP_MS = 5_000
 
 function formatDate(value: string | null): string {
   if (!value) return '-'
@@ -39,8 +40,47 @@ function statusBadgeClass(status: string): string {
   return 'bg-[#fef3c7] text-[#92400e]'
 }
 
+function mergeSnapshots(previous: CageOutLiveSessionResponse | null, incoming: CageOutLiveSessionResponse): CageOutLiveSessionResponse {
+  if (!previous) {
+    return incoming
+  }
+
+  const mergedSession = {
+    ...incoming.session,
+    photoSnapshotBase64: incoming.session.photoSnapshotBase64 ?? previous.session.photoSnapshotBase64,
+    videoSnapshotBase64: incoming.session.videoSnapshotBase64 ?? previous.session.videoSnapshotBase64,
+  }
+
+  const previousHadItems = previous.session.items.length > 0
+  const incomingEmpty = incoming.session.items.length === 0
+  const shouldProtectTransientGap = previousHadItems && incomingEmpty && previous.session.isActive && incoming.isOnline
+
+  if (shouldProtectTransientGap) {
+    const previousUpdatedAt = previous.session.lastUpdatedAt ? new Date(previous.session.lastUpdatedAt).getTime() : 0
+    const incomingUpdatedAt = incoming.session.lastUpdatedAt ? new Date(incoming.session.lastUpdatedAt).getTime() : 0
+    const gap = incomingUpdatedAt > 0 && previousUpdatedAt > 0 ? incomingUpdatedAt - previousUpdatedAt : 0
+
+    if (gap >= 0 && gap <= TRANSIENT_GAP_MS) {
+      mergedSession.items = previous.session.items
+      mergedSession.scannedCount = previous.session.scannedCount
+      mergedSession.approvedCount = previous.session.approvedCount
+      mergedSession.currentTotalAmount = previous.session.currentTotalAmount
+      mergedSession.checkoutId = previous.session.checkoutId
+      mergedSession.sessionStartedAt = previous.session.sessionStartedAt
+      mergedSession.lastUpdatedAt = previous.session.lastUpdatedAt
+      mergedSession.isActive = previous.session.isActive
+    }
+  }
+
+  return {
+    ...incoming,
+    session: mergedSession,
+  }
+}
+
 export default function CageOutsRealtimePage() {
   const { cageOutId } = useParams<{ cageOutId: string }>()
+  const hasLoadedRef = useRef(false)
   const [snapshot, setSnapshot] = useState<CageOutLiveSessionResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -52,7 +92,7 @@ export default function CageOutsRealtimePage() {
   const loadSnapshot = useCallback(async (showSpinner = true) => {
     if (!cageOutId) return
 
-    if (showSpinner) {
+    if (showSpinner && !hasLoadedRef.current) {
       setIsLoading(true)
     } else {
       setIsRefreshing(true)
@@ -60,16 +100,14 @@ export default function CageOutsRealtimePage() {
 
     try {
       const data = await getCageOutLiveSession(cageOutId)
-      setSnapshot(data)
+      setSnapshot((previous) => mergeSnapshots(previous, data))
+      hasLoadedRef.current = true
       setError(null)
     } catch (requestError) {
       setError(getApiErrorMessage(requestError, 'Não foi possível carregar a sessão ao vivo deste CageOut.'))
     } finally {
-      if (showSpinner) {
-        setIsLoading(false)
-      } else {
-        setIsRefreshing(false)
-      }
+      setIsLoading(false)
+      setIsRefreshing(false)
     }
   }, [cageOutId])
 
@@ -86,9 +124,12 @@ export default function CageOutsRealtimePage() {
 
     const connection = createCageOutLiveSessionConnection(cageOutId, (nextSnapshot) => {
       if (disposed) return
-      setSnapshot(nextSnapshot)
+      setSnapshot((previous) => mergeSnapshots(previous, nextSnapshot))
+      hasLoadedRef.current = true
       setError(null)
       setIsSignalRConnected(true)
+      setIsLoading(false)
+      setIsRefreshing(false)
     })
 
     stopConnection = connection.stop
@@ -235,7 +276,7 @@ export default function CageOutsRealtimePage() {
           </div>
         </header>
 
-        {isLoading ? (
+        {!snapshot && isLoading ? (
           <div className="flex min-h-52 items-center justify-center text-sm font-medium text-[#5e675f]">Carregando sessão ao vivo...</div>
         ) : !session || session.items.length === 0 ? (
           <div className="flex min-h-52 items-center justify-center px-6 text-center text-sm text-[#5e675f]">
