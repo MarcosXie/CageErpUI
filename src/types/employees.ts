@@ -33,7 +33,7 @@ export const ATTENDANT_PROCEDURES: Array<{ value: AttendantProcedure; label: str
   { value: 'Refund', label: 'Estorno' },
   { value: 'Cleaning', label: 'Limpeza' },
   { value: 'Emptying', label: 'Esvaziar' },
-  { value: 'ReadFailure', label: 'Falha de leitura' },
+  { value: 'ReadFailure', label: 'Falha de captura' },
   { value: 'AssistedCheckout', label: 'Checkout Assistida' },
   { value: 'OpenCage', label: 'Abrir Cage' },
   { value: 'CloseCage', label: 'Fechar Cage' },
