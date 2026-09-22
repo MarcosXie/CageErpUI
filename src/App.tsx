@@ -5,6 +5,7 @@ import AppLayout from './components/AppLayout'
 import ProtectedRoute from './components/ProtectedRoute'
 import CageClustersPage from './pages/CageClustersPage'
 import CageOutsPage from './pages/CageOutsPage'
+import CageOutsRealtimePage from './pages/CageOutsRealtimePage'
 import CageOutsReportPage from './pages/CageOutsReportPage'
 import ClientesPage from './pages/ClientesPage'
 import FuncionariosPage from './pages/FuncionariosPage'
@@ -34,6 +35,7 @@ export default function App() {
               <Route path="relatorios/vendas" element={<VendasPage />} />
               <Route path="relatorios/rejeitos" element={<RejeitosPage />} />
               <Route path="relatorios/cageouts" element={<CageOutsReportPage />} />
+              <Route path="relatorios/cageouts/:cageOutId/realtime" element={<CageOutsRealtimePage />} />
             </Route>
           </Route>
 

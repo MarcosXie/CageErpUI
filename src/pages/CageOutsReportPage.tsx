@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { CircleAlert, Fingerprint, RefreshCw, Wifi, WifiOff } from 'lucide-react'
+import { CircleAlert, Fingerprint, MonitorUp, RefreshCw, Wifi, WifiOff } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { getApiErrorMessage } from '../services/api'
 import { getCageIds } from '../services/cageIds'
 import { getUnits } from '../services/units'
@@ -26,6 +27,7 @@ function formatLastSeen(lastSeenAt: string | null): string {
 }
 
 export default function CageOutsReportPage() {
+  const navigate = useNavigate()
   const [cageIds, setCageIds] = useState<CageOutIdResponseDto[]>([])
   const [units, setUnits] = useState<CageOutUnitResponseDto[]>([])
   const [unitFilter, setUnitFilter] = useState('')
@@ -117,6 +119,7 @@ export default function CageOutsReportPage() {
                   <th className="px-5 py-3 font-semibold">Cadastro</th>
                   <th className="px-5 py-3 font-semibold">Conexão</th>
                   <th className="px-5 py-3 font-semibold">Última atividade</th>
+                  <th className="px-5 py-3 text-right font-semibold">Monitor</th>
                 </tr>
               </thead>
               <tbody>
@@ -138,6 +141,16 @@ export default function CageOutsReportPage() {
                         </span>
                       </td>
                       <td className="px-5 py-4 text-[#657168]">{formatLastSeen(item.lastSeenAt)}</td>
+                      <td className="px-5 py-4 text-right">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/relatorios/cageouts/${item.id}/realtime`)}
+                          className="inline-flex items-center gap-1.5 border border-[#b9c7bd] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#183c34] transition-colors hover:bg-[#edf3ee]"
+                        >
+                          <MonitorUp size={14} />
+                          Abrir
+                        </button>
+                      </td>
                     </tr>
                   )
                 })}
