@@ -173,17 +173,13 @@ export default function CageOutsRealtimePage() {
 
   return (
     <section>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
         <div>
           <Link to="/relatorios/cageouts" className="inline-flex items-center gap-2 text-sm font-semibold text-[#526158] hover:text-[#183c34]">
             <ArrowLeft size={16} />
             Voltar para Telemetria
           </Link>
-          <p className="mt-3 text-sm font-semibold uppercase tracking-[0.12em] text-[#6c786f]">Relatórios</p>
-          <h1 className="mt-1 text-3xl font-bold text-[#183c34]">Monitor ao vivo</h1>
-          <p className="mt-1 text-sm text-[#526158]">
-            {snapshot ? `${snapshot.identifier} · modo ${snapshot.currentMode ?? 'não informado'}` : 'Carregando identificador...'}
-          </p>
+          <h1 className="mt-0.5 text-2xl font-bold text-[#183c34]">Monitor ao vivo</h1>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
