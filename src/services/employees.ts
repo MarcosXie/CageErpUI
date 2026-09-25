@@ -30,3 +30,11 @@ export async function authenticateEmployee(auth: CageOutEmployeeAuthDto): Promis
   const response = await api.post(`${endpoint}/authenticate`, auth)
   return response.data
 }
+
+export async function updateEmployeeFingerprint(id: string, fingerprintData: string): Promise<void> {
+  await api.patch(`${endpoint}/${id}/fingerprint`, { fingerprintData })
+}
+
+export async function clearEmployeeFingerprint(id: string): Promise<void> {
+  await updateEmployeeFingerprint(id, '')
+}

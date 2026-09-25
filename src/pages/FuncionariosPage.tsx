@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { CircleAlert, Edit2, Plus, RefreshCw, Trash2, Users, X } from 'lucide-react'
+import { CircleAlert, Edit2, Fingerprint, Plus, RefreshCw, Trash2, Users, X } from 'lucide-react'
 import { getApiErrorMessage } from '../services/api'
 import { getEmployees, createEmployee, updateEmployee, deleteEmployee } from '../services/employees'
 import { getUnits } from '../services/units'
 import type { AttendantProcedure, CageOutEmployeeResponseDto, CageOutEmployeeDto } from '../types/employees'
 import type { CageOutUnitResponseDto } from '../types/units'
 import { ATTENDANT_PROCEDURES } from '../types/employees'
+import FingerprintEnrollDialog from '../components/FingerprintEnrollDialog'
 
 export default function FuncionariosPage() {
   const [employees, setEmployees] = useState<CageOutEmployeeResponseDto[]>([])
@@ -17,6 +18,7 @@ export default function FuncionariosPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [generatedBadgeCode, setGeneratedBadgeCode] = useState<string>('')
   const [selectedUnitIdFilter, setSelectedUnitIdFilter] = useState<string>('')
+  const [fingerprintEmployee, setFingerprintEmployee] = useState<CageOutEmployeeResponseDto | null>(null)
   const [formData, setFormData] = useState<CageOutEmployeeDto>({
     name: '',
     badgeCode: '',
@@ -234,7 +236,8 @@ export default function FuncionariosPage() {
                   <th className="px-5 py-3 font-semibold">Crachá</th>
                   <th className="px-5 py-3 font-semibold">Unidade</th>
                   <th className="px-5 py-3 font-semibold">Procedimentos</th>
-                  <th className="w-32 px-5 py-3 text-right font-semibold">Ações</th>
+                  <th className="px-5 py-3 font-semibold">Digital</th>
+                  <th className="w-40 px-5 py-3 text-right font-semibold">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -255,7 +258,23 @@ export default function FuncionariosPage() {
                           : '-'}
                       </td>
                       <td className="px-5 py-4">
+                        {employee.fingerprintData ? (
+                          <span className="text-xs font-semibold text-[#1f6553]">Cadastrada</span>
+                        ) : (
+                          <span className="text-xs text-[#a0a89f]">Sem digital</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-4">
                         <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setFingerprintEmployee(employee)}
+                            disabled={isSubmitting}
+                            className="text-sm font-semibold text-[#1f6553] hover:text-[#123d33] disabled:cursor-not-allowed disabled:opacity-60"
+                            title="Configurar digital"
+                          >
+                            <Fingerprint size={17} />
+                          </button>
                           <button
                             type="button"
                             onClick={() => openModalForEdit(employee)}
@@ -399,6 +418,18 @@ export default function FuncionariosPage() {
             </form>
           </section>
         </div>
+      )}
+
+      {fingerprintEmployee && (
+        <FingerprintEnrollDialog
+          employeeId={fingerprintEmployee.id}
+          employeeName={fingerprintEmployee.name}
+          onClose={() => setFingerprintEmployee(null)}
+          onSaved={() => {
+            setFingerprintEmployee(null)
+            void loadData()
+          }}
+        />
       )}
     </section>
   )
