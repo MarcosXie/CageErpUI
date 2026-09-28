@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { CircleAlert, Edit2, Fingerprint, Plus, RefreshCw, Trash2, Users, X } from 'lucide-react'
+import { CircleAlert, Download, Edit2, Fingerprint, Plus, RefreshCw, Trash2, Users, X } from 'lucide-react'
 import { getApiErrorMessage } from '../services/api'
 import { getEmployees, createEmployee, updateEmployee, deleteEmployee } from '../services/employees'
 import { getUnits } from '../services/units'
@@ -199,6 +199,14 @@ export default function FuncionariosPage() {
             <RefreshCw size={17} className={isLoading ? 'animate-spin' : ''} />
             Atualizar
           </button>
+          <a
+            href="https://api.cageouts.com.br/downloads/agente-digital-cageerp.zip"
+            className="flex h-10 items-center gap-2 border border-[#b9c7bd] bg-white px-3 text-sm font-semibold text-[#183c34] transition-colors hover:bg-[#edf3ee]"
+            title="Baixar o agente que roda no computador do leitor de digital (necessario para cadastrar digitais)"
+          >
+            <Download size={17} />
+            Agente de Digital
+          </a>
           <button
             type="button"
             onClick={openModalForCreate}
