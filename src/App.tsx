@@ -34,8 +34,8 @@ export default function App() {
               <Route path="produtos" element={<ProdutosPage />} />
               <Route path="relatorios/vendas" element={<VendasPage />} />
               <Route path="relatorios/rejeitos" element={<RejeitosPage />} />
-              <Route path="relatorios/cageouts" element={<CageOutsReportPage />} />
-              <Route path="relatorios/cageouts/:cageOutId/realtime" element={<CageOutsRealtimePage />} />
+              <Route path="relatorios/monitoramento" element={<CageOutsReportPage />} />
+              <Route path="relatorios/monitoramento/:cageOutId/realtime" element={<CageOutsRealtimePage />} />
             </Route>
           </Route>
 

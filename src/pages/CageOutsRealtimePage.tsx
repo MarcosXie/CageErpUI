@@ -175,9 +175,9 @@ export default function CageOutsRealtimePage() {
     <section>
       <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
         <div>
-          <Link to="/relatorios/cageouts" className="inline-flex items-center gap-2 text-sm font-semibold text-[#526158] hover:text-[#183c34]">
+          <Link to="/relatorios/monitoramento" className="inline-flex items-center gap-2 text-sm font-semibold text-[#526158] hover:text-[#183c34]">
             <ArrowLeft size={16} />
-            Voltar para Telemetria
+            Voltar para Monitoramento
           </Link>
           <h1 className="mt-0.5 text-2xl font-bold text-[#183c34]">Monitor ao vivo</h1>
         </div>

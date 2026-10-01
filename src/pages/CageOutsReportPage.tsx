@@ -65,7 +65,7 @@ export default function CageOutsReportPage() {
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#6c786f]">Relatórios</p>
-          <h1 className="mt-1 text-3xl font-bold text-[#183c34]">Telemetria</h1>
+          <h1 className="mt-1 text-3xl font-bold text-[#183c34]">Monitoramento</h1>
         </div>
         <div className="flex flex-wrap items-end gap-2">
           <label className="block">
@@ -144,7 +144,7 @@ export default function CageOutsReportPage() {
                       <td className="px-5 py-4 text-right">
                         <button
                           type="button"
-                          onClick={() => navigate(`/relatorios/cageouts/${item.id}/realtime`)}
+                          onClick={() => navigate(`/relatorios/monitoramento/${item.id}/realtime`)}
                           className="inline-flex items-center gap-1.5 border border-[#b9c7bd] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#183c34] transition-colors hover:bg-[#edf3ee]"
                         >
                           <MonitorUp size={14} />
