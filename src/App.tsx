@@ -3,6 +3,7 @@ import './App.css'
 import AuthProvider from './auth/AuthProvider'
 import AppLayout from './components/AppLayout'
 import ProtectedRoute from './components/ProtectedRoute'
+import ApresentacaoPage from './pages/ApresentacaoPage'
 import CageClustersPage from './pages/CageClustersPage'
 import CageOutsPage from './pages/CageOutsPage'
 import CageOutsRealtimePage from './pages/CageOutsRealtimePage'
@@ -21,6 +22,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          <Route path="/apresentacao" element={<ApresentacaoPage />} />
           <Route path="/login" element={<LoginPage />} />
 
           <Route element={<ProtectedRoute />}>
