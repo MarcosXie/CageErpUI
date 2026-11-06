@@ -24,7 +24,7 @@ export default function AppLayout() {
 
           <img src="/branding/logo-cageouts.png" alt="CageOuts" className="h-9 w-auto object-contain" />
           <span className="hidden border-l border-[#d8d0c2] pl-3 text-base font-semibold text-[#183c34] sm:inline">
-            CageERP
+            CagePlatform
           </span>
         </div>
 

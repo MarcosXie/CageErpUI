@@ -1,5 +1,5 @@
 import WorkInProgress from '../components/WorkInProgress'
 
 export default function ProdutosPage() {
-  return <WorkInProgress moduleName="Cage ERP Demo" title="Produtos" />
+  return <WorkInProgress moduleName="CagePlatform Demo" title="Produtos" />
 }

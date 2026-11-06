@@ -13,7 +13,7 @@ export interface NavModule {
 
 export const navModules: NavModule[] = [
   {
-    title: 'Cage ERP DEMO',
+    title: 'CagePlatform DEMO',
     items: [
       { label: 'Clientes', path: '/clientes', icon: Users },
       { label: 'Unidades', path: '/unidades', icon: Building2 },
