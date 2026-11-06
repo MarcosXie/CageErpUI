@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { AUTH_STORAGE_KEY, AuthContext, readStoredSession, type AuthSession } from './authContext'
 
 // Credenciais de demonstracao: a checagem roda no navegador e nao protege a API.
-const DEMO_USERNAME = 'CageErpAdmin'
+const DEMO_USERNAME = 'CagePlatformAdmin'
 const DEMO_PASSWORD = '1234'
 
 export default function AuthProvider({ children }: { children: ReactNode }) {
