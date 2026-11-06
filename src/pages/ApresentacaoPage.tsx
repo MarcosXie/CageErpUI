@@ -8,12 +8,16 @@ import {
   Mail,
   MapPin,
   MessageCircle,
+  MonitorPlay,
   Scale,
   ShoppingCart,
+  Store,
+  Users,
 } from 'lucide-react'
 import './ApresentacaoPage.css'
 
 const videoUrl = '/media/CageOuts-Promo.mp4'
+const clusterVideoUrl = '/media/CageCluster.mp4'
 const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
   'Av. Manuel Bandeira, 360, Vila Leopoldina, São Paulo - SP, 05317-020',
 )}`
@@ -28,6 +32,7 @@ const contacts = [
 
 export default function ApresentacaoPage() {
   const [videoError, setVideoError] = useState(false)
+  const [clusterVideoError, setClusterVideoError] = useState(false)
 
   useEffect(() => {
     const previousTitle = document.title
@@ -56,6 +61,7 @@ export default function ApresentacaoPage() {
         </a>
         <nav aria-label="Navegação da apresentação">
           <a className="presentation-nav-link" href="#solucao">O ecossistema</a>
+          <a className="presentation-nav-link" href="#cagecluster">CageCluster</a>
           <a className="presentation-nav-link" href="#visita">Visite a CageOuts</a>
           <a className="presentation-nav-contact" href="#contato">
             Agende uma demo <ArrowUpRight size={17} aria-hidden="true" />
@@ -172,6 +178,70 @@ export default function ApresentacaoPage() {
               </p>
             </article>
           </div>
+        </section>
+
+        <section id="cagecluster" className="presentation-cluster presentation-container" aria-labelledby="cluster-title">
+          <div className="presentation-cluster-copy">
+            <p className="presentation-eyebrow">CageCluster</p>
+            <h2 id="cluster-title">Vários caixas.<br /><em>Uma única fila.</em></h2>
+            <p>
+              O <strong>CageCluster</strong> é um conjunto de CagePDVs operando
+              com uma fila única. Quem organiza o fluxo é o <strong>CagePanel</strong>,
+              um painel de distribuição que indica qual caixa a próxima pessoa
+              da fila deve usar.
+            </p>
+            <ul className="presentation-cluster-points">
+              <li>
+                <Store size={24} strokeWidth={1.5} aria-hidden="true" />
+                <span><strong>Conjunto de CagePDVs</strong> trabalhando lado a lado.</span>
+              </li>
+              <li>
+                <Users size={24} strokeWidth={1.5} aria-hidden="true" />
+                <span><strong>Fila única</strong>, mais justa e organizada para o cliente.</span>
+              </li>
+              <li>
+                <MonitorPlay size={24} strokeWidth={1.5} aria-hidden="true" />
+                <span><strong>CagePanel</strong> chama o próximo cliente para o caixa livre.</span>
+              </li>
+            </ul>
+          </div>
+
+          <figure className="presentation-film">
+            <div className="presentation-film-heading">
+              <span><span className="presentation-status-dot" /> CAGECLUSTER EM AÇÃO</span>
+              <span>FILA ÚNICA + CAGEPANEL</span>
+            </div>
+            <video
+              controls
+              playsInline
+              preload="none"
+              poster="/media/cagecluster-poster.jpg"
+              src={clusterVideoUrl}
+              aria-label="Vídeo do CageCluster"
+              aria-describedby="cluster-video-caption"
+              onError={(event) => {
+                console.error('Não foi possível carregar o vídeo CageCluster.', event.currentTarget.error)
+                setClusterVideoError(true)
+              }}
+            >
+              Seu navegador não suporta este vídeo. <a href={clusterVideoUrl}>Abra o vídeo diretamente.</a>
+            </video>
+            {clusterVideoError && (
+              <p className="presentation-video-error" role="alert">
+                Não foi possível carregar o vídeo. Tente abri-lo pelo link abaixo
+                ou fale com nossa equipe.
+              </p>
+            )}
+            <figcaption id="cluster-video-caption">
+              <div>
+                <strong>Uma fila, vários CagePDVs, zero confusão.</strong>
+                <span>Veja o CagePanel distribuindo os clientes entre os caixas.</span>
+              </div>
+              <a href={clusterVideoUrl} target="_blank" rel="noopener noreferrer" aria-label="Abrir vídeo do CageCluster em uma nova aba">
+                <ArrowUpRight size={22} aria-hidden="true" />
+              </a>
+            </figcaption>
+          </figure>
         </section>
 
         <section id="visita" className="presentation-visit presentation-container" aria-labelledby="visit-title">
