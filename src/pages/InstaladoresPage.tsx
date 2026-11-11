@@ -14,6 +14,10 @@ const FINGERPRINT_AGENT_URL = 'https://api.cageouts.com.br/downloads/agente-digi
 
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 
+function getAppDisplayName(app: string): string {
+  return app === 'CageOuts' ? 'cagePDV' : app
+}
+
 function formatSize(bytes: number): string {
   if (!bytes) return '-'
   return `${(bytes / (1024 * 1024)).toFixed(1).replace('.', ',')} MB`
@@ -63,7 +67,7 @@ export default function InstaladoresPage() {
       link.click()
       link.remove()
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError, `Não foi possível baixar ${release.app} ${release.version}.`))
+      setError(getApiErrorMessage(requestError, `Não foi possível baixar ${getAppDisplayName(release.app)} ${release.version}.`))
     } finally {
       setDownloadingKey(null)
     }
@@ -113,7 +117,7 @@ export default function InstaladoresPage() {
                       <Package size={20} />
                     </div>
                     <div>
-                      <h2 className="text-lg font-bold text-[#183c34]">{app.app}</h2>
+                      <h2 className="text-lg font-bold text-[#183c34]">{getAppDisplayName(app.app)}</h2>
                       <p className="text-sm text-[#5e675f]">{appDescriptions[app.app] ?? 'Instalador Windows.'}</p>
                     </div>
                   </div>
