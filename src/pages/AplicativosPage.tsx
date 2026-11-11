@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { CircleAlert, Download, Package, RefreshCw } from 'lucide-react'
+import { CircleAlert, Download, Fingerprint, Package, RefreshCw } from 'lucide-react'
 import { getApiErrorMessage } from '../services/api'
 import { getSdkDownload, getSdks } from '../services/sdks'
 import type { SdkAppResponseDto, SdkReleaseResponseDto } from '../types/sdks'
@@ -8,6 +8,9 @@ const appDescriptions: Record<string, string> = {
   CageOuts: 'Aplicação de self-checkout (WPF) instalada em cada Cage.',
   CageCluster: 'Aplicação CageCluster para Windows.',
 }
+
+// Pacote unico (sem versionamento) servido pelo nginx da API; o mesmo link e usado na tela de Funcionarios.
+const FINGERPRINT_AGENT_URL = 'https://api.cageouts.com.br/downloads/agente-digital-cageerp.zip'
 
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 
@@ -21,7 +24,7 @@ function formatDate(value: string): string {
   return Number.isNaN(date.getTime()) ? '-' : dateFormatter.format(date)
 }
 
-export default function SdksPage() {
+export default function AplicativosPage() {
   const [apps, setApps] = useState<SdkAppResponseDto[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -71,8 +74,8 @@ export default function SdksPage() {
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#6c786f]">Downloads</p>
-          <h1 className="mt-1 text-3xl font-bold text-[#183c34]">SDKs</h1>
-          <p className="mt-1 text-sm text-[#5e675f]">Instaladores Windows disponíveis para cada aplicação, por versão.</p>
+          <h1 className="mt-1 text-3xl font-bold text-[#183c34]">Aplicativos</h1>
+          <p className="mt-1 text-sm text-[#5e675f]">Instaladores Windows dos aplicativos da plataforma CageOuts.</p>
         </div>
         <button
           type="button"
@@ -206,6 +209,29 @@ export default function SdksPage() {
           })}
         </div>
       )}
+
+      <article className="mt-6 border border-[#d8d0c2] bg-white">
+        <header className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center bg-[#edf3ee] text-[#183c34]">
+              <Fingerprint size={20} />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-[#183c34]">Agente de Digital</h2>
+              <p className="text-sm text-[#5e675f]">
+                Roda no computador do leitor de digital (Hamster DX); necessário para cadastrar digitais na tela de Funcionários.
+              </p>
+            </div>
+          </div>
+          <a
+            href={FINGERPRINT_AGENT_URL}
+            className="flex h-10 items-center gap-2 border border-[#1f6553] bg-[#1f6553] px-3 text-sm font-semibold text-white transition-colors hover:bg-[#123d33]"
+          >
+            <Download size={17} />
+            Baixar
+          </a>
+        </header>
+      </article>
     </section>
   )
 }
