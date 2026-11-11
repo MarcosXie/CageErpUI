@@ -1,4 +1,4 @@
-# CageErpUI
+# CageCloud UI (CageErpUI)
 
 Frontend administrativo em React, Vite, TypeScript e Tailwind, criado para evoluir junto com o `CageErpApi`.
 

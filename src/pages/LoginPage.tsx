@@ -30,7 +30,7 @@ export default function LoginPage() {
       <section className="w-full max-w-sm border border-[#d8d0c2] bg-white px-6 py-8 shadow-[0_18px_45px_rgba(40,48,42,0.10)]">
         <div className="flex flex-col items-center text-center">
           <img src="/branding/logo-cageouts.png" alt="CageOuts" className="h-14 w-auto object-contain" />
-          <h1 className="mt-5 text-2xl font-bold text-[#183c34]">CageErp</h1>
+          <h1 className="mt-5 text-2xl font-bold text-[#183c34]">CageCloud</h1>
           <p className="mt-1 text-sm text-[#5e675f]">Entre para acessar os módulos.</p>
         </div>
 
