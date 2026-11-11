@@ -1,4 +1,4 @@
-import { Building2, CircleAlert, ReceiptText, Store, Users, Wifi, Workflow, type LucideIcon } from 'lucide-react'
+import { Building2, CircleAlert, Package, ReceiptText, Store, Users, Wifi, Workflow, type LucideIcon } from 'lucide-react'
 
 export interface NavItem {
   label: string
@@ -28,6 +28,12 @@ export const navModules: NavModule[] = [
       { label: 'Vendas', path: '/relatorios/vendas', icon: ReceiptText },
       { label: 'Paradas', path: '/relatorios/rejeitos', icon: CircleAlert },
       { label: 'Monitoramento', path: '/relatorios/monitoramento', icon: Wifi },
+    ],
+  },
+  {
+    title: 'Downloads',
+    items: [
+      { label: 'SDKs', path: '/sdks', icon: Package },
     ],
   },
 ]
