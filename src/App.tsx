@@ -14,7 +14,7 @@ import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import ProdutosPage from './pages/ProdutosPage'
 import RejeitosPage from './pages/RejeitosPage'
-import AplicativosPage from './pages/AplicativosPage'
+import InstaladoresPage from './pages/InstaladoresPage'
 import UnidadesPage from './pages/UnidadesPage'
 import VendasPage from './pages/VendasPage'
 
@@ -39,7 +39,7 @@ export default function App() {
               <Route path="relatorios/rejeitos" element={<RejeitosPage />} />
               <Route path="relatorios/monitoramento" element={<CageOutsReportPage />} />
               <Route path="relatorios/monitoramento/:cageOutId/realtime" element={<CageOutsRealtimePage />} />
-              <Route path="aplicativos" element={<AplicativosPage />} />
+              <Route path="instaladores" element={<InstaladoresPage />} />
             </Route>
           </Route>
 

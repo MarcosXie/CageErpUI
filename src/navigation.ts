@@ -33,7 +33,7 @@ export const navModules: NavModule[] = [
   {
     title: 'Downloads',
     items: [
-      { label: 'Aplicativos', path: '/aplicativos', icon: Package },
+      { label: 'Instaladores', path: '/instaladores', icon: Package },
     ],
   },
 ]

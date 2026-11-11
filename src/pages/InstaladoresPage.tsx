@@ -24,7 +24,7 @@ function formatDate(value: string): string {
   return Number.isNaN(date.getTime()) ? '-' : dateFormatter.format(date)
 }
 
-export default function AplicativosPage() {
+export default function InstaladoresPage() {
   const [apps, setApps] = useState<SdkAppResponseDto[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -74,7 +74,7 @@ export default function AplicativosPage() {
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#6c786f]">Downloads</p>
-          <h1 className="mt-1 text-3xl font-bold text-[#183c34]">Aplicativos</h1>
+          <h1 className="mt-1 text-3xl font-bold text-[#183c34]">Instaladores</h1>
           <p className="mt-1 text-sm text-[#5e675f]">Instaladores Windows dos aplicativos da plataforma CageOuts.</p>
         </div>
         <button
