@@ -15,7 +15,7 @@ const FINGERPRINT_AGENT_URL = 'https://api.cageouts.com.br/downloads/agente-digi
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 
 function getAppDisplayName(app: string): string {
-  return app === 'CageOuts' ? 'cagePDV' : app
+  return app === 'CageOuts' ? 'CagePDV' : app
 }
 
 function formatSize(bytes: number): string {
