@@ -71,8 +71,11 @@ o placar. Nao compartilhar publicamente.
 - Missoes: uma de cada grupo por sorteio, sem repetir em uma mesma sala/aba.
   `Terminei` esconde o par para passar o celular. Nao conclui nem pontua a missao:
   o grupo valida no fim da noite e ajusta o placar manualmente.
-- Quem sou eu e mimica: 100 cartas em cada baralho, sem reposicao; quem sou eu
-  prepara a carta oculta antes de revelar para a turma com o celular na testa.
+- Quem sou eu e mimica: baralhos sem reposicao; a mimica possui 130 cartas.
+  Quem sou eu prepara a carta oculta antes de revelar para a turma com o celular na testa.
+  Na mimica, os temas sao diretos e limitados a uma ou duas palavras, misturando
+  temas simples e acoes como "Godzilla nadando". O contador e a validacao da
+  sessao usam o tamanho real do baralho, inclusive apos recarregar a pagina.
   Acerto soma 1; passar nao pontua. Mimica: Andre + Maicon contra Leticia + Duda;
   pontuar qualquer integrante altera os dois membros da dupla atomicamente.
   Leticia conserva o identificador `Leh` na API.

@@ -151,19 +151,20 @@ function Missions({ id, player }: { id: string; player: Player }) {
 
 interface DeckState { used: number[]; current: number | null; revealed: boolean }
 const newDeck = (): DeckState => ({ used: [], current: null, revealed: false })
-function isDeck(value: unknown): value is DeckState {
+function isDeck(value: unknown, length: number): value is DeckState {
   if (!value || typeof value !== 'object') return false
   const state = value as DeckState
-  return Array.isArray(state.used) && state.used.every(index => Number.isInteger(index) && index >= 0 && index < 100)
-    && (state.current === null || (Number.isInteger(state.current) && state.current >= 0 && state.current < 100))
+  return Array.isArray(state.used) && state.used.every(index => Number.isInteger(index) && index >= 0 && index < length)
+    && (state.current === null || (Number.isInteger(state.current) && state.current >= 0 && state.current < length))
     && typeof state.revealed === 'boolean'
 }
 
 function DeckGame({ id, player, mime, disabled, onChange }: { id: string; player: Player; mime: boolean; disabled: boolean; onChange: (changes: ScoreChange[]) => void }) {
-  const local = useSessionValue(`halloween.deck.${mime ? 'mime' : 'who'}.${id}`, newDeck, isDeck)
+  const prompts = mime ? MIME_PROMPTS : CHARACTERS
+  const local = useSessionValue(`halloween.deck.${mime ? 'mime' : 'who'}.${id}`, newDeck,
+    (value): value is DeckState => isDeck(value, prompts.length))
   const state = local.value
   const [confirmReset, setConfirmReset] = useState(false)
-  const prompts = mime ? MIME_PROMPTS : CHARACTERS
   const draw = () => {
     const next = drawUnused(prompts.length, state.used)
     if (next !== null) local.save({ used: [...state.used, next], current: next, revealed: mime })
@@ -173,15 +174,15 @@ function DeckGame({ id, player, mime, disabled, onChange }: { id: string; player
     if (correct) onChange([{ player, game: mime ? 'mimica' : 'quem-sou-eu', delta: 1 }])
   }
   return <section className={`hw-panel hw-play ${state.revealed ? 'hw-card-active' : ''}`}>
-    <span className="hw-eyebrow">{state.used.length} / 100 CARTAS SORTEADAS</span>
+    <span className="hw-eyebrow">{state.used.length} / {prompts.length} CARTAS SORTEADAS</span>
     <h2>{mime ? 'O corpo fala. Você não.' : 'Todo mundo sabe. Menos você.'}</h2>
     {mime && <MimeTeams player={player} />}
     <p>{mime ? `${PLAYER_NAMES[player]} faz a mímica para o parceiro. Acerto soma +1 para a dupla inteira. Alternem quem interpreta a cada vez; deem a mesma quantidade de tentativas às duas duplas.`
       : `É a vez de ${PLAYER_NAMES[player]}. Sorteie sem olhar, coloque o celular na testa e peça para alguém revelar. Façam o mesmo número de tentativas por pessoa; cada acerto vale +1.`}</p>
     {local.error && <Notice>{local.error}</Notice>}
     {state.current === null ? <>
-      <div className="hw-secret">{mime ? <Drama size={64} /> : <Ghost size={64} />}<span>{state.used.length === 100 ? 'Baralho esgotado!' : 'Prontos para a próxima criatura?'}</span></div>
-      <button className="hw-button" disabled={state.used.length === 100 || !!local.error || disabled} onClick={draw}><Shuffle size={18} /> Sortear</button>
+      <div className="hw-secret">{mime ? <Drama size={64} /> : <Ghost size={64} />}<span>{state.used.length === prompts.length ? 'Baralho esgotado!' : 'Prontos para a próxima criatura?'}</span></div>
+      <button className="hw-button" disabled={state.used.length === prompts.length || !!local.error || disabled} onClick={draw}><Shuffle size={18} /> Sortear</button>
     </> : !state.revealed ? <div className="hw-forehead">
       <Ghost size={58} /><h3>Carta preparada. Não olhe!</h3><p>Celular na testa, tela para a turma.</p>
       <button className="hw-button" onClick={() => local.save({ ...state, revealed: true })}>Revelar para a turma</button>
@@ -191,8 +192,8 @@ function DeckGame({ id, player, mime, disabled, onChange }: { id: string; player
         <button className="hw-button hw-secondary" disabled={disabled} onClick={() => finish(false)}>Passar / esconder <ArrowRight size={18} /></button></div>
     </>}
     <p className="hw-small"><VolumeX size={14} /> {mime ? 'Sem sons e sem palavras. Só atuação.' : 'Dica: vire o celular na horizontal para uma carta maior.'} Nenhuma carta se repete até o baralho acabar.</p>
-    {state.used.length === 100 && state.current === null && (confirmReset
-      ? <div className="hw-actions"><span>Reembaralhar as 100 cartas?</span><button className="hw-button hw-secondary" onClick={() => { local.save(newDeck()); setConfirmReset(false) }}>Confirmar</button></div>
+    {state.used.length === prompts.length && state.current === null && (confirmReset
+      ? <div className="hw-actions"><span>Reembaralhar as {prompts.length} cartas?</span><button className="hw-button hw-secondary" onClick={() => { local.save(newDeck()); setConfirmReset(false) }}>Confirmar</button></div>
       : <button className="hw-text-button" onClick={() => setConfirmReset(true)}>Reembaralhar baralho</button>)}
   </section>
 }

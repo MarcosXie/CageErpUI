@@ -18,19 +18,26 @@ test('mission draws exhaust both pools without repeating, including across seria
   assert.equal(drawUnused(7, state.unrecorded), null)
 })
 
-test('each deck delivers exactly 100 different cards before exhaustion', () => {
+test('each deck delivers all its cards without repeats before exhaustion', () => {
   for (const deck of [CHARACTERS, MIME_PROMPTS]) {
     const used = []
     const drawn = new Set()
-    for (let turn = 0; turn < 100; turn++) {
+    for (let turn = 0; turn < deck.length; turn++) {
       const index = drawUnused(deck.length, used)
       assert.notEqual(index, null)
       assert.ok(!drawn.has(deck[index]))
       drawn.add(deck[index])
       used.push(index)
     }
-    assert.equal(drawn.size, 100)
+    assert.equal(drawn.size, deck.length)
     assert.equal(drawUnused(deck.length, used), null)
+  }
+})
+
+test('mime themes use only one or two words', () => {
+  for (const prompt of MIME_PROMPTS) {
+    const words = prompt.trim().split(/\s+/).filter(Boolean)
+    assert.ok(words.length >= 1 && words.length <= 2, `Tema longo ou vazio: ${prompt}`)
   }
 })
 
