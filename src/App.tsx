@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import './App.css'
 import AuthProvider from './auth/AuthProvider'
@@ -18,11 +19,14 @@ import InstaladoresPage from './pages/InstaladoresPage'
 import UnidadesPage from './pages/UnidadesPage'
 import VendasPage from './pages/VendasPage'
 
+const HalloweenPage = lazy(() => import('./pages/HalloweenPage'))
+
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          <Route path="/halloween/*" element={<Suspense fallback={<p role="status">Carregando Halloween...</p>}><HalloweenPage /></Suspense>} />
           <Route path="/apresentacao" element={<ApresentacaoPage />} />
           <Route path="/login" element={<LoginPage />} />
 

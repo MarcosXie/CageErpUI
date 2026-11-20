@@ -35,6 +35,51 @@ no celular e `preload="none"`: nao baixa o video antecipadamente nem inicia
 automaticamente. Ha um link para abrir o arquivo diretamente e aviso de falha
 de carregamento. Os dois arquivos de midia precisam acompanhar o deploy.
 
+## Halloween das Lagartixas
+
+A area publica `/halloween` e independente do login e do layout administrativo,
+carregada sob demanda, com estilos isolados e a imagem fornecida em
+`public/halloween/lagartixa.png`. Escolha Andre, Duda, Leh ou Maicon. Uma pessoa
+cria a sala; os demais entram pelo link `/halloween?s=<id>`. O identificador
+aleatorio funciona como chave de acesso: qualquer pessoa com o link pode editar
+o placar. Nao compartilhar publicamente.
+
+- Sete paginas: `missoes`, `mimica`, `drink-russo`, `quem-sou-eu`, `timer`,
+  `sobrevivencia` e `fantasia`, sob `/halloween/`, preservando `?s=<id>`.
+- Placar individual por jogo com +1/-1 e geral calculado pela soma, compartilhado
+  pela API e atualizado a cada 3 segundos. Reenvios de pontos sao idempotentes;
+  um envio pendente fica salvo na aba e pode ser reenviado apos falha/reload.
+- Missoes: uma de cada grupo por sorteio, sem repetir em uma mesma sala/aba.
+  `Terminei` esconde o par para passar o celular. Nao conclui nem pontua a missao:
+  o grupo valida no fim da noite e ajusta o placar manualmente.
+- Quem sou eu e mimica: 100 cartas em cada baralho, sem reposicao; quem sou eu
+  prepara a carta oculta antes de revelar para a turma com o celular na testa.
+  Acerto soma 1 ao jogador selecionado; passar nao pontua.
+- Timer: jogar os quatro turnos no mesmo aparelho. Cinco alvos inteiros
+  progressivos (3-6, 7-11, 12-17, 18-24 e 25-30 segundos), iguais para todos em
+  cada rodada. Relogio oculto, erro absoluto em milissegundos; ranking 4/3/2/1.
+  Empates dividem a posicao e pulam a proxima. O resultado final e somado ao
+  placar com `Salvar resultado no placar`, uma unica vez por partida.
+- Drink Russo, Sobrevivencia e Concurso de fantasia: instrucoes presenciais e
+  pontos manuais, sem inventar regras automaticas para a turma.
+
+Jogador, missoes, baralhos e progresso do Timer usam `sessionStorage` (privados
+por aba e sala, sobrevivem a reload; nao sao sincronizados). Ao encerrar a sessao
+do navegador esses dados podem desaparecer; os placares ficam no servidor.
+Nenhuma foto/video dos jogadores e enviada. O link da sala permite recuperar
+os placares em outro dispositivo; guarde-o antes de fechar a aba.
+
+Depende da publicacao dos endpoints Halloween da API configurada por
+`VITE_API_BASE_URL`. Nao existe fallback para um placar local quando a API falha.
+Consulte `CageErpApi/CAGEOUTS_ENDPOINTS.md` para armazenamento e deploy.
+
+Validacao focada (Node 24+, sem dependencias novas):
+
+```powershell
+node --test .\src\halloween\gameLogic.test.mjs
+npx eslint src\halloween src\pages\HalloweenPage.tsx src\App.tsx
+```
+
 ## Comandos
 
 ```powershell
