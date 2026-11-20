@@ -1,14 +1,19 @@
 export const PLAYERS = ['Andre', 'Duda', 'Leh', 'Maicon'] as const
 export type Player = typeof PLAYERS[number]
+export const PLAYER_NAMES: Record<Player, string> = { Andre: 'Andre', Duda: 'Duda', Leh: 'Letícia', Maicon: 'Maicon' }
+export const TEAMS = [
+  { name: 'Andre & Maicon', players: ['Andre', 'Maicon'] as const },
+  { name: 'Letícia & Duda', players: ['Leh', 'Duda'] as const },
+] as const
 
 export const GAMES = [
   { id: 'missoes', title: 'Missões secretas', subtitle: 'Até o fim da noite', icon: 'scroll', tag: 'EM SEGREDO', description: 'Duas missões. Uma noite inteira para ninguém desconfiar.' },
-  { id: 'mimica', title: 'Mímica de Halloween', subtitle: 'O palco é seu', icon: 'drama', tag: '100 DESAFIOS', description: 'Sem falar, sem vergonha e com criaturas muito suspeitas.' },
+  { id: 'mimica', title: 'Mímica de Halloween', subtitle: 'Dupla contra dupla', icon: 'drama', tag: 'EM DUPLAS', description: 'Andre & Maicon vs Letícia & Duda. Cada acerto é da dupla.' },
   { id: 'drink-russo', title: 'Drink Russo', subtitle: 'Sorte ou travessura?', icon: 'glass', tag: 'À MESA', description: 'Escolham os copos, combinem as regras e anotem os pontos.' },
   { id: 'quem-sou-eu', title: 'Quem sou eu?', subtitle: 'Uma criatura na testa', icon: 'ghost', tag: '100 CARTAS', description: 'Todo mundo sabe quem você é. Menos você.' },
   { id: 'timer', title: 'Timer', subtitle: 'Confie no seu sexto sentido', icon: 'timer', tag: '5 RODADAS', description: 'Sem olhar o relógio: quão perto do alvo você consegue parar?' },
   { id: 'sobrevivencia', title: 'Sobrevivência no jogo de terror', subtitle: 'Quem vai até o fim?', icon: 'skull', tag: 'CORAGEM', description: 'Preparem o jogo de terror. A sobrevivência vale pontos.' },
-  { id: 'fantasia', title: 'Concurso de fantasia', subtitle: 'O look mais assombrado', icon: 'crown', tag: 'GRANDE FINAL', description: 'Criatividade, atuação e aquele toque de susto. Quem leva?' },
+  { id: 'fantasia', title: 'Concurso de fantasia', subtitle: 'O público decide', icon: 'crown', tag: 'INSTAGRAM', description: 'A votação acontece no Instagram. Registrem aqui o resultado.' },
 ] as const
 export type GameId = typeof GAMES[number]['id']
 export type Scores = Record<GameId, Record<Player, number>>
@@ -17,8 +22,45 @@ export interface Room {
   revision: number
   scores: Scores
   appliedOperations: string[]
+  completedGames: GameId[]
+  instagramPostUrl: string | null
+  timer: TimerMatch
+  drinkRounds: DrinkRound[]
+  survival: { player: Player | null; startsAt: string | null; completedPlayers: Player[] }
 }
 export interface ScoreChange { player: Player; game: GameId; delta: number }
+export interface TimerRound {
+  id: string
+  targetSeconds: number
+  readyPlayers: Partial<Record<Player, string>>
+  startsAt: string | null
+  elapsedMilliseconds: Partial<Record<Player, number | null>>
+  stoppedPlayers: Player[]
+  points: Partial<Record<Player, number>>
+  awarded: boolean
+}
+export interface TimerMatch { id: string; roundIndex: number; rounds: TimerRound[] }
+export interface DrinkRound {
+  id: string
+  votes: Partial<Record<Player, Player>>
+  votedPlayers: Player[]
+  holder: Player | null
+  points: Partial<Record<Player, number>>
+}
+export interface GameAction {
+  action: 'game-status' | 'instagram' | 'fantasy-votes' | 'timer-ready' | 'timer-start' | 'timer-stop'
+    | 'timer-next' | 'timer-close' | 'drink-start' | 'drink-vote' | 'drink-reveal'
+    | 'survival-start' | 'survival-finish' | 'survival-cancel'
+  game?: GameId
+  player?: Player
+  target?: Player
+  roundId?: string
+  completed?: boolean
+  elapsedMs?: number
+  url?: string
+  votes?: number
+}
+export type Act = (action: GameAction) => void
 export interface Mission { title: string; text: string }
 
 export const RECORDED_MISSIONS: Mission[] = [
@@ -85,9 +127,3 @@ export const MIME_PROMPTS = [
   'Abóbora sendo esculpida', 'Caldeirão transbordando', 'Porta de casa mal-assombrada rangendo', 'Pessoa presa numa teia de aranha', 'Pessoa com medo do próprio reflexo',
   'Alien pedindo informação na rua', 'Godzilla pisando em Lego', 'King Kong dançando no prédio', 'Demogorgon tentando comer espaguete', 'Lagartixa de bruxa fugindo da abóbora',
 ] as const
-
-export const MANUAL_RULES = {
-  'drink-russo': ['Preparem copos iguais com bebidas ou sabores escolhidos em consenso; todos podem ser sem álcool.', 'Combinem antes o que vale ponto e quem deseja participar. Ninguém precisa beber para jogar.', 'Escolham os copos e revelem os sabores. Registrem o resultado no placar abaixo.'],
-  sobrevivencia: ['Escolham juntos o jogo de terror e combinem uma fase ou tempo de tentativa igual para todos.', 'Alternem entre Andre, Duda, Leh e Maicon. O grupo define os pontos por sobrevivência, progresso ou objetivos.', 'Ao fim de cada tentativa, ajustem os pontos abaixo. O total entra no placar geral.'],
-  fantasia: ['Cada jogador apresenta a fantasia: nome, inspiração e sua melhor atuação assustadora.', 'Combinem critérios e pesos antes: criatividade, caracterização e apresentação. Evitem votar em si mesmos.', 'Somem os votos e registrem os pontos de cada participante abaixo.'],
-} as const

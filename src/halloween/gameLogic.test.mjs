@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { CHARACTERS, MIME_PROMPTS, PLAYERS, RECORDED_MISSIONS, UNRECORDED_MISSIONS } from './data.ts'
-import { createTimerMatch, drawUnused, roundPoints, timerTotals } from './gameLogic.ts'
+import { CHARACTERS, GAMES, MIME_PROMPTS, PLAYERS, RECORDED_MISSIONS, UNRECORDED_MISSIONS } from './data.ts'
+import { championshipPoints, CHAMPIONSHIP_POINTS, comparePlayers, drawUnused, estimateClock, placementPoints, totalScore } from './gameLogic.ts'
 
 test('mission draws exhaust both pools without repeating, including across serialization', () => {
   let state = { recorded: [], unrecorded: [] }
@@ -34,31 +34,56 @@ test('each deck delivers exactly 100 different cards before exhaustion', () => {
   }
 })
 
-test('timer ranks absolute millisecond errors and gives ties equal competition ranks', () => {
-  const points = roundPoints({
-    target: 10,
-    turns: [
-      { player: 'Andre', elapsedMs: 9800 },
-      { player: 'Duda', elapsedMs: 10200 },
-      { player: 'Leh', elapsedMs: 10000 },
-      { player: 'Maicon', elapsedMs: 12000 },
-    ],
-  })
-  assert.deepEqual(points, { Andre: 3, Duda: 3, Leh: 4, Maicon: 1 })
-  const unfinished = createTimerMatch()
-  unfinished.rounds[0].turns = [{ player: 'Andre', elapsedMs: 0 }]
-  assert.deepEqual(timerTotals(unfinished), { Andre: 0, Duda: 0, Leh: 0, Maicon: 0 })
+const newRoom = () => ({
+  completedGames: [],
+  scores: Object.fromEntries(GAMES.map(game => [game.id, Object.fromEntries(PLAYERS.map(player => [player, 0]))])),
 })
 
-test('timer has five strictly increasing targets at most 30 seconds and sums all rounds', () => {
-  for (let attempt = 0; attempt < 100; attempt++) {
-    const match = createTimerMatch()
-    assert.equal(match.rounds.length, 5)
-    match.rounds.forEach((round, index) => {
-      assert.ok(round.target >= 3 && round.target <= 30)
-      if (index) assert.ok(round.target > match.rounds[index - 1].target)
-      round.turns = PLAYERS.map((player, position) => ({ player, elapsedMs: round.target * 1000 + position * 100 }))
-    })
-    assert.deepEqual(timerTotals(match), { Andre: 20, Duda: 15, Leh: 10, Maicon: 5 })
+test('only completed games contribute weighted placement points, not raw scores', () => {
+  for (const game of ['timer', 'drink-russo', 'quem-sou-eu', 'sobrevivencia']) {
+    const room = newRoom()
+    room.scores[game] = game === 'sobrevivencia'
+      ? { Andre: 0, Duda: 1, Leh: 2, Maicon: 3 } : { Andre: 20, Duda: 15, Leh: 10, Maicon: 5 }
+    assert.equal(totalScore(room, 'Andre'), 0)
+    room.completedGames.push(game)
+    assert.deepEqual(PLAYERS.map(player => totalScore(room, player)), [60, 40, 25, 10])
+    if (game !== 'sobrevivencia') room.scores[game].Andre = 9999
+    assert.equal(totalScore(room, 'Andre'), 60)
+    room.completedGames = []
+    assert.equal(totalScore(room, 'Andre'), 0)
+  }
+})
+
+test('ties divide the points of the occupied positions without inflating the game budget', () => {
+  const awards = CHAMPIONSHIP_POINTS.timer
+  const values = [10, 10, 5, 0]
+  assert.deepEqual(values.map((_, index) => placementPoints(values, index, awards)), [50, 50, 25, 10])
+  assert.equal(values.reduce((sum, _, index) => sum + placementPoints(values, index, awards), 0), 135)
+  assert.equal(placementPoints([0, 0, 0, 0], 0, awards), 33.75)
+})
+
+test('mime teammates share the team award instead of competing against each other', () => {
+  const room = newRoom()
+  room.scores.mimica = { Andre: 5, Maicon: 5, Leh: 3, Duda: 3 }
+  assert.deepEqual(PLAYERS.map(player => championshipPoints(room, player, 'mimica')), [70, 35, 35, 70])
+  room.scores.mimica.Leh = room.scores.mimica.Duda = 5
+  assert.deepEqual(PLAYERS.map(player => championshipPoints(room, player, 'mimica')), [52.5, 52.5, 52.5, 52.5])
+})
+
+test('survival ranks fewer scares higher, Instagram ranks more votes higher', () => {
+  const room = newRoom()
+  room.scores.sobrevivencia = { Andre: 0, Duda: 3, Leh: 1, Maicon: 8 }
+  room.scores.fantasia = { Andre: 200, Duda: 100, Leh: 50, Maicon: 10 }
+  assert.deepEqual([...PLAYERS].sort((a, b) => comparePlayers(room, a, b, 'sobrevivencia')), ['Andre', 'Leh', 'Duda', 'Maicon'])
+  assert.deepEqual(PLAYERS.map(player => championshipPoints(room, player, 'sobrevivencia')), [60, 25, 40, 10])
+  room.completedGames.push('sobrevivencia', 'fantasia')
+  assert.equal(totalScore(room, 'Andre'), 160)
+})
+
+test('a clock sample corrects different phone clocks to the same scheduled start', () => {
+  for (const phoneOffset of [-7200000, 0, 300000]) {
+    const sample = estimateClock(100000 + phoneOffset, 100100 + phoneOffset, 100050)
+    assert.equal(sample.uncertaintyMs, 50)
+    assert.equal(105000 + phoneOffset + sample.offsetMs, 105000)
   }
 })

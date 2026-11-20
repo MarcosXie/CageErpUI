@@ -2,8 +2,9 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Link, Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowDown, ArrowLeft, ArrowRight, Check, Copy, Crown, Drama, Ghost, GlassWater, Minus, Plus, ScrollText, Shuffle, Skull, Timer, Trophy, Users, VolumeX } from 'lucide-react'
 import { api, getApiErrorMessage } from '../services/api'
-import { CHARACTERS, GAMES, MANUAL_RULES, MIME_PROMPTS, PLAYERS, RECORDED_MISSIONS, UNRECORDED_MISSIONS, type GameId, type Player, type Room, type ScoreChange } from '../halloween/data'
-import { createTimerMatch, drawUnused, isRoom, roundPoints, timerTotals, totalScore, type TimerMatch } from '../halloween/gameLogic'
+import { CHARACTERS, GAMES, MIME_PROMPTS, PLAYER_NAMES, PLAYERS, RECORDED_MISSIONS, TEAMS, UNRECORDED_MISSIONS, type GameId, type Player, type Room, type ScoreChange } from '../halloween/data'
+import { CHAMPIONSHIP_POINTS, comparePlayers, drawUnused, formatPoints, isRoom, totalScore } from '../halloween/gameLogic'
+import { ChampionshipRules, DrinkGame, FantasyGame, GameCompletion, MimeTeams, SharedTimerGame, SurvivalGame } from '../halloween/HalloweenGames'
 import { useHalloweenRoom, useSessionValue } from '../halloween/useHalloweenRoom'
 import './HalloweenPage.css'
 
@@ -24,7 +25,7 @@ function PlayerPicker({ onSelect }: { onSelect: (player: Player) => void }) {
       <p>Escolha seu jogador para entrar na brincadeira.</p>
       <div className="hw-player-grid">{PLAYERS.map((player, index) =>
         <button key={player} className={`hw-player hw-player-${index}`} onClick={() => onSelect(player)}>
-          <span>{player.slice(0, 1)}</span><strong>{player}</strong><ArrowRight size={19} />
+          <span>{PLAYER_NAMES[player].slice(0, 1)}</span><strong>{PLAYER_NAMES[player]}</strong><ArrowRight size={19} />
         </button>)}</div>
       <span className="hw-muted"><Users size={15} /> 4 amigos · 7 jogos · uma noite para lembrar</span>
     </section>
@@ -74,21 +75,29 @@ function RoomEntry() {
 }
 
 function Scoreboard({ room, game, disabled, onChange }: { room: Room; game?: GameId; disabled: boolean; onChange: (changes: ScoreChange[]) => void }) {
-  const ranked = [...PLAYERS].sort((a, b) => totalScore(room, b, game) - totalScore(room, a, game))
+  const rows = game === 'mimica'
+    ? TEAMS.map(team => ({ player: team.players[0], label: team.name }))
+    : PLAYERS.map(player => ({ player, label: PLAYER_NAMES[player] }))
+  const ranked = rows.sort((a, b) => comparePlayers(room, a.player, b.player, game))
+  const locked = disabled || (!!game && room.completedGames.includes(game))
+  const unit = game === 'sobrevivencia' ? 'SUSTOS' : game === 'fantasia' ? 'VOTOS' : 'PTS'
   return <section className="hw-panel hw-scoreboard" aria-label={game ? 'Placar do jogo' : 'Placar geral'}>
     <div className="hw-section-title"><div><span className="hw-eyebrow">{game ? 'CADA PONTO CONTA' : 'A DISPUTA DA NOITE'}</span><h2><Trophy size={22} /> {game ? 'Placar do jogo' : 'Placar geral'}</h2></div><span className="hw-live"><i /> AO VIVO</span></div>
-    <ol>{ranked.map(player => {
+    <ol>{ranked.map(({ player, label }) => {
       const score = totalScore(room, player, game)
-      const rank = 1 + ranked.filter(other => totalScore(room, other, game) > score).length
+      const rank = 1 + ranked.filter(other => comparePlayers(room, other.player, player, game) < 0).length
       return <li key={player}>
         <span className={`hw-rank ${rank === 1 ? 'hw-first' : ''}`}>{rank === 1 ? <Crown size={18} /> : `0${rank}`}</span>
-        <span className={`hw-avatar hw-avatar-${PLAYERS.indexOf(player)}`}>{player[0]}</span><strong>{player}</strong>
-        {game && <button className="hw-score-control" aria-label={`Diminuir pontos de ${player}`} disabled={disabled} onClick={() => onChange([{ player, game, delta: -1 }])}><Minus size={16} /></button>}
-        <span className="hw-points">{score}<small>PTS</small></span>
-        {game && <button className="hw-score-control" aria-label={`Aumentar pontos de ${player}`} disabled={disabled} onClick={() => onChange([{ player, game, delta: 1 }])}><Plus size={16} /></button>}
+        <span className={`hw-avatar hw-avatar-${PLAYERS.indexOf(player)}`}>{PLAYER_NAMES[player][0]}</span><strong>{label}</strong>
+        {game && <button className="hw-score-control" aria-label={`Diminuir ${unit.toLowerCase()} de ${label}`} disabled={locked || ((game === 'sobrevivencia' || game === 'fantasia') && score <= 0)} onClick={() => onChange([{ player, game, delta: -1 }])}><Minus size={16} /></button>}
+        <span className="hw-points">{formatPoints(score)}<small>{unit}</small></span>
+        {game && <button className="hw-score-control" aria-label={`Aumentar ${unit.toLowerCase()} de ${label}`} disabled={locked} onClick={() => onChange([{ player, game, delta: 1 }])}><Plus size={16} /></button>}
       </li>
     })}</ol>
-    <p className="hw-small">{game ? 'Ajustes manuais de +1 / −1. Atualiza o total da noite.' : 'Soma dos sete jogos. Ajuste pontos dentro de cada jogo.'}</p>
+    <p className="hw-small">{game === 'mimica' ? 'Acertos da dupla. Cada integrante recebe a mesma colocação no campeonato.'
+      : game === 'sobrevivencia' ? 'Menos sustos é melhor. Use +1 / −1 para registrar ou corrigir.'
+        : game ? 'Resultado bruto do jogo. O ranking será convertido em pontos gerais ao concluir.'
+          : `Pontos por colocação nos ${room.completedGames.length} de 7 jogos concluídos. Não é a soma dos resultados brutos.`}</p>
   </section>
 }
 
@@ -121,7 +130,7 @@ function Missions({ id, player }: { id: string; player: Player }) {
   }
   return <section className="hw-panel hw-play">
     <span className="hw-game-symbol"><ScrollText /></span><h2>Seu segredo começa aqui.</h2>
-    <p>Uma missão com registro e outra sem. Só {player} deve olhar para a tela agora.</p>
+    <p>Uma missão com registro e outra sem. Só {PLAYER_NAMES[player]} deve olhar para a tela agora.</p>
     {local.error && <Notice>{local.error}</Notice>}
     {mission ? <>
       <div className="hw-missions">
@@ -136,6 +145,7 @@ function Missions({ id, player }: { id: string; player: Player }) {
       <p className="hw-small">{exhausted ? 'Todas as duplas já foram sorteadas nesta sessão do navegador.' : `${7 - state.recorded.length} duplas restantes · sem repetição nesta aba, mesmo ao recarregar`}</p>
     </>}
     <p className="hw-small">Fotos e vídeos ficam com vocês; não enviamos registros. Respeitem o consentimento e os limites de todos.</p>
+    <p className="hw-small">No fim da noite, a turma valida as missões: +1 por missão cumprida (0, 1 ou 2 por pessoa). Depois conclua o jogo para pontuar o campeonato.</p>
   </section>
 }
 
@@ -165,7 +175,9 @@ function DeckGame({ id, player, mime, disabled, onChange }: { id: string; player
   return <section className={`hw-panel hw-play ${state.revealed ? 'hw-card-active' : ''}`}>
     <span className="hw-eyebrow">{state.used.length} / 100 CARTAS SORTEADAS</span>
     <h2>{mime ? 'O corpo fala. Você não.' : 'Todo mundo sabe. Menos você.'}</h2>
-    <p>{mime ? `${player} faz a mímica. Combinem quem recebe o ponto por acerto; por padrão ele vai para ${player}.` : `É a vez de ${player}. Sorteie sem olhar, coloque o celular na testa e peça para alguém revelar. Faça perguntas de sim ou não!`}</p>
+    {mime && <MimeTeams player={player} />}
+    <p>{mime ? `${PLAYER_NAMES[player]} faz a mímica para o parceiro. Acerto soma +1 para a dupla inteira. Alternem quem interpreta a cada vez; deem a mesma quantidade de tentativas às duas duplas.`
+      : `É a vez de ${PLAYER_NAMES[player]}. Sorteie sem olhar, coloque o celular na testa e peça para alguém revelar. Façam o mesmo número de tentativas por pessoa; cada acerto vale +1.`}</p>
     {local.error && <Notice>{local.error}</Notice>}
     {state.current === null ? <>
       <div className="hw-secret">{mime ? <Drama size={64} /> : <Ghost size={64} />}<span>{state.used.length === 100 ? 'Baralho esgotado!' : 'Prontos para a próxima criatura?'}</span></div>
@@ -175,79 +187,13 @@ function DeckGame({ id, player, mime, disabled, onChange }: { id: string; player
       <button className="hw-button" onClick={() => local.save({ ...state, revealed: true })}>Revelar para a turma</button>
     </div> : <>
       <div className="hw-prompt" aria-live="polite">{prompts[state.current]}</div>
-      <div className="hw-actions"><button className="hw-button" disabled={disabled} onClick={() => finish(true)}><Check size={18} /> Acertou +1</button>
+      <div className="hw-actions"><button className="hw-button" disabled={disabled} onClick={() => finish(true)}><Check size={18} /> {mime ? 'Dupla acertou +1' : 'Acertou +1'}</button>
         <button className="hw-button hw-secondary" disabled={disabled} onClick={() => finish(false)}>Passar / esconder <ArrowRight size={18} /></button></div>
     </>}
     <p className="hw-small"><VolumeX size={14} /> {mime ? 'Sem sons e sem palavras. Só atuação.' : 'Dica: vire o celular na horizontal para uma carta maior.'} Nenhuma carta se repete até o baralho acabar.</p>
     {state.used.length === 100 && state.current === null && (confirmReset
       ? <div className="hw-actions"><span>Reembaralhar as 100 cartas?</span><button className="hw-button hw-secondary" onClick={() => { local.save(newDeck()); setConfirmReset(false) }}>Confirmar</button></div>
       : <button className="hw-text-button" onClick={() => setConfirmReset(true)}>Reembaralhar baralho</button>)}
-  </section>
-}
-
-function isTimerMatch(value: unknown): value is TimerMatch {
-  if (!value || typeof value !== 'object') return false
-  const match = value as TimerMatch
-  return typeof match.id === 'string' && Array.isArray(match.rounds) && match.rounds.length === 5
-    && Number.isInteger(match.round) && match.round >= 0 && match.round < 5
-    && (match.startedAt === null || (Number.isFinite(match.startedAt) && match.startedAt > 0))
-    && match.rounds.every(round => Number.isInteger(round.target) && round.target >= 3 && round.target <= 30
-      && Array.isArray(round.turns) && round.turns.length <= 4 && round.turns.every((turn, index) =>
-        turn.player === PLAYERS[index] && Number.isFinite(turn.elapsedMs) && turn.elapsedMs >= 0))
-}
-
-function TimerGame({ id, room, disabled, onChange }: { id: string; room: Room; disabled: boolean; onChange: (changes: ScoreChange[], operationId?: string) => void }) {
-  const local = useSessionValue(`halloween.timer.${id}`, createTimerMatch, isTimerMatch)
-  const match = local.value
-  const round = match.rounds[match.round]
-  const roundDone = round.turns.length === 4
-  const done = match.round === 4 && roundDone
-  const turnPlayer = PLAYERS[round.turns.length]
-  const [confirmNew, setConfirmNew] = useState(false)
-  const totals = timerTotals(match)
-  const awarded = room.appliedOperations.includes(match.id)
-  const press = () => {
-    if (match.startedAt === null) {
-      local.save({ ...match, startedAt: performance.timeOrigin + performance.now() })
-    } else {
-      const elapsedMs = Math.max(0, Math.round(performance.timeOrigin + performance.now() - match.startedAt))
-      local.save({ ...match, startedAt: null, rounds: match.rounds.map((item, index) => index === match.round
-        ? { ...item, turns: [...item.turns, { player: turnPlayer, elapsedMs }] } : item) })
-    }
-  }
-  return <section className="hw-panel hw-play">
-    <span className="hw-eyebrow">RODADA {match.round + 1} DE 5 · MESMO ALVO PARA TODOS</span>
-    <h2>{done ? 'O tempo revelou o vencedor.' : roundDone ? 'Rodada encerrada!' : `Sua vez, ${turnPlayer}.`}</h2>
-    <p>Clique uma vez para iniciar e outra para parar. O relógio fica escondido. Quanto menor o erro, melhor!</p>
-    {local.error && <Notice>{local.error}</Notice>}
-    {!roundDone && <>
-      <div className="hw-target"><span>TEMPO-ALVO</span><strong>{round.target}<small>seg</small></strong></div>
-      <button className={`hw-timer-button ${match.startedAt !== null ? 'hw-running' : ''}`} onClick={press} disabled={!!local.error}>
-        <Timer size={30} />{match.startedAt !== null ? 'PARAR' : 'INICIAR'}<small>{match.startedAt !== null ? 'Confie na sua intuição…' : 'Respire fundo. Concentre-se.'}</small>
-      </button>
-      <p className="hw-small">{round.turns.length} de 4 jogadores já tentaram. O resultado aparece só no fim da rodada.</p>
-    </>}
-    {roundDone && <>
-      <div className="hw-table-wrap"><table className="hw-results"><caption>Resultado da rodada · alvo {round.target}s</caption><thead><tr><th>Jogador</th><th>Tempo</th><th>Erro</th><th>Pontos</th></tr></thead>
-        <tbody>{[...round.turns].sort((a, b) => Math.abs(a.elapsedMs - round.target * 1000) - Math.abs(b.elapsedMs - round.target * 1000)).map(turn =>
-          <tr key={turn.player}><th>{turn.player}</th><td>{(turn.elapsedMs / 1000).toFixed(3)}s</td><td>{(Math.abs(turn.elapsedMs - round.target * 1000) / 1000).toFixed(3)}s</td><td>+{roundPoints(round)[turn.player]}</td></tr>)}</tbody></table></div>
-      {!done && <button className="hw-button" onClick={() => local.save({ ...match, round: match.round + 1 })}>Próxima rodada <ArrowRight size={18} /></button>}
-    </>}
-    {done && <>
-      <h3>Resultado final da partida</h3>
-      <div className="hw-final">{[...PLAYERS].sort((a, b) => totals[b] - totals[a]).map(player => <div key={player}><span>{totals[player] === Math.max(...Object.values(totals)) && <Crown size={18} />} {player}</span><strong>{totals[player]} pts</strong></div>)}</div>
-      <button className="hw-button" disabled={disabled || awarded} onClick={() => onChange(PLAYERS.map(player => ({ player, game: 'timer', delta: totals[player] })), match.id)}><Trophy size={18} />{awarded ? 'Resultado salvo no placar!' : 'Salvar resultado no placar'}</button>
-      {awarded && (confirmNew ? <button className="hw-button hw-secondary" onClick={() => { local.save(createTimerMatch()); setConfirmNew(false) }}>Confirmar nova partida</button> : <button className="hw-text-button" onClick={() => setConfirmNew(true)}>Jogar outra partida</button>)}
-    </>}
-    <p className="hw-small">Por rodada: 4 / 3 / 2 / 1 pontos por proximidade. Empates no milissegundo recebem a mesma posição; a seguinte é pulada. Cinco alvos progressivos até 30s. O resultado final é somado ao placar apenas uma vez.</p>
-    <p className="hw-small">Joguem a partida neste aparelho, alternando os quatro jogadores. O progresso fica nesta aba; o placar final é compartilhado com os outros celulares.</p>
-  </section>
-}
-
-function ManualGame({ game }: { game: keyof typeof MANUAL_RULES }) {
-  return <section className="hw-panel hw-play"><span className="hw-game-symbol"><Users /></span><h2>A brincadeira é com vocês.</h2><p>Esta é uma atividade presencial, com pontuação manual e regras combinadas pela turma.</p>
-    <ol className="hw-rules">{MANUAL_RULES[game].map((rule, index) => <li key={rule}><span>0{index + 1}</span><p>{rule}</p></li>)}</ol>
-    {game === 'drink-russo' && <p className="hw-small">Sem obrigação, sem misturas desconhecidas e sem desafios de quantidade. Água e bebidas sem álcool fazem parte da brincadeira.</p>}
   </section>
 }
 
@@ -271,7 +217,9 @@ function RoomExperience({ id, player }: { id: string; player: Player }) {
     <div className="hw-room-bar"><span><i className={`hw-dot ${shared.error ? 'hw-offline' : ''}`} /> {shared.error ? 'Sincronização interrompida' : 'Sala conectada'} <span className="hw-room-code">/ {id.slice(0, 8).toUpperCase()}</span></span>
       <button className="hw-text-button" onClick={() => void copy()}><Copy size={15} /> {copied ? 'Link copiado!' : 'Convidar a turma'}</button></div>
     {(shared.error || copyError) && <Notice>{shared.error || copyError}</Notice>}
-    {shared.pending && <Notice>Há pontos aguardando confirmação. Você pode reenviar com segurança. <button className="hw-text-button" disabled={shared.busy} onClick={shared.retry}>{shared.busy ? 'Enviando…' : 'Reenviar pontos pendentes'}</button></Notice>}
+    {(shared.liveError || shared.clockError) && <Notice>{shared.liveError || shared.clockError}</Notice>}
+    {shared.pending && <Notice>Há uma ação aguardando confirmação. Reenvie com segurança. <button className="hw-text-button" disabled={shared.busy} onClick={shared.retry}>{shared.busy ? 'Enviando…' : 'Reenviar ação pendente'}</button>
+      {shared.canDiscard && <button className="hw-text-button" onClick={shared.discard}>Descartar ação recusada</button>}</Notice>}
     <Routes>
       <Route index element={<>
         <section className="hw-hero"><div><span className="hw-eyebrow"><span className="hw-tiny-line" /> A NOITE É NOSSA</span><h1>Travessuras,<br />sustos e <em>disputa.</em></h1><p>O covil das Lagartixas Tetraplégicas está aberto.<br />Escolha um jogo. Cumpra sua missão. Domine o placar.</p>
@@ -281,18 +229,23 @@ function RoomExperience({ id, player }: { id: string; player: Player }) {
         <div className="hw-home-grid"><section id="hw-games"><div className="hw-section-title"><div><span className="hw-eyebrow">ESCOLHA SEU DESTINO</span><h2>O que vamos jogar?</h2></div><span className="hw-muted">07 JOGOS</span></div>
           <div className="hw-game-grid">{GAMES.map((game, index) => {
             const Icon = icons[game.icon]
-            return <Link key={game.id} to={to(`/${game.id}`)} className={`hw-game-card hw-game-card-${index}`}><div className="hw-card-top"><span className="hw-card-icon"><Icon size={24} /></span><span className="hw-tag">{game.tag}</span></div><h3>{game.title}</h3><p>{game.description}</p><span className="hw-card-link">{game.subtitle}<ArrowRight size={17} /></span></Link>
+            return <Link key={game.id} to={to(`/${game.id}`)} className={`hw-game-card hw-game-card-${index}`}><div className="hw-card-top"><span className="hw-card-icon"><Icon size={24} /></span><span className="hw-tag">{game.tag}</span></div><h3>{game.title}</h3><p>{game.description}</p>
+              <div className={`hw-card-prize${game.id === 'fantasia' ? ' hw-card-prize-top' : ''}`}><Trophy size={18} /><div><strong>{CHAMPIONSHIP_POINTS[game.id][0]} <small>pts</small></strong><span>{game.id === 'mimica' ? 'No geral por integrante da dupla vencedora' : game.id === 'fantasia' ? 'Maior prêmio da noite · 1º lugar no geral' : 'Para o 1º lugar no geral'}</span></div></div>
+              <span className="hw-card-link">{game.subtitle}<ArrowRight size={17} /></span></Link>
           })}</div></section><aside><Scoreboard room={room} disabled={disabled} onChange={shared.changeScores} /><div className="hw-note"><Ghost size={23} /><p>A única regra universal:<br /><strong>todo mundo se diverte.</strong><br />Respeite os limites da turma.</p></div></aside></div>
+        <ChampionshipRules />
       </>} />
       {GAMES.map(game => <Route key={game.id} path={game.id} element={<>
         <Link className="hw-back" to={to()}><ArrowLeft size={17} /> Todos os jogos</Link>
         <header className="hw-game-header"><span className="hw-eyebrow">{game.subtitle}</span><h1>{game.title}</h1></header>
         <div className="hw-game-layout"><div>
           {game.id === 'missoes' ? <Missions id={id} player={player} />
-            : game.id === 'mimica' || game.id === 'quem-sou-eu' ? <DeckGame key={game.id} id={id} player={player} mime={game.id === 'mimica'} disabled={disabled} onChange={shared.changeScores} />
-              : game.id === 'timer' ? <TimerGame id={id} room={room} disabled={disabled} onChange={shared.changeScores} />
-                : <ManualGame game={game.id} />}
-        </div><aside><Scoreboard room={room} game={game.id} disabled={disabled} onChange={shared.changeScores} /><Scoreboard room={room} disabled={disabled} onChange={shared.changeScores} /></aside></div>
+            : game.id === 'mimica' || game.id === 'quem-sou-eu' ? <DeckGame key={`${game.id}:${player}`} id={id} player={player} mime={game.id === 'mimica'} disabled={disabled || room.completedGames.includes(game.id)} onChange={shared.changeScores} />
+              : game.id === 'timer' ? <SharedTimerGame room={room} player={player} sync={shared} />
+                : game.id === 'drink-russo' ? <DrinkGame key={player} room={room} player={player} disabled={disabled || room.completedGames.includes(game.id)} act={shared.act} />
+                  : game.id === 'fantasia' ? <FantasyGame room={room} disabled={disabled || room.completedGames.includes(game.id)} act={shared.act} />
+                    : <SurvivalGame room={room} disabled={disabled || room.completedGames.includes(game.id)} act={shared.act} clock={shared.clock} onChange={shared.changeScores} />}
+        </div><aside><Scoreboard room={room} game={game.id} disabled={disabled} onChange={shared.changeScores} /><GameCompletion room={room} game={game.id} disabled={disabled} act={shared.act} /><Scoreboard room={room} disabled={disabled} onChange={shared.changeScores} /></aside></div>
       </>} />)}
       <Route path="*" element={<Navigate to={to()} replace />} />
     </Routes>
@@ -312,7 +265,7 @@ export default function HalloweenPage() {
   return <div className="hw">
     <div className="hw-shell">
       <header className="hw-header"><Link to={validId ? `/halloween?s=${id}` : '/halloween'} className="hw-brand"><span className="hw-brand-icon"><Ghost size={27} /></span><span>LAGARTIXAS<span>HALLOWEEN CLUB</span></span></Link>
-        <div className="hw-header-right"><span className="hw-header-label">EDIÇÃO HALLOWEEN</span>{player.value && <label className="hw-player-select"><span>Jogando como</span><select aria-label="Selecionar jogador" value={player.value} onChange={event => player.save(event.target.value as Player)}>{PLAYERS.map(name => <option key={name}>{name}</option>)}</select></label>}</div>
+        <div className="hw-header-right"><span className="hw-header-label">EDIÇÃO HALLOWEEN</span>{player.value && <label className="hw-player-select"><span>Jogando como</span><select aria-label="Selecionar jogador" value={player.value} onChange={event => player.save(event.target.value as Player)}>{PLAYERS.map(name => <option key={name} value={name}>{PLAYER_NAMES[name]}</option>)}</select></label>}</div>
       </header>
       {player.error && <Notice>{player.error}</Notice>}
       {!player.value ? <PlayerPicker onSelect={name => player.save(name)} />
