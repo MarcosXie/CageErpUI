@@ -25,6 +25,54 @@ export function ChampionshipRules() {
   </section>
 }
 
+export function CanGame({ disabled, onChange }: { disabled: boolean; onChange: (changes: ScoreChange[]) => void }) {
+  const [winner, setWinner] = useState<Player | ''>('')
+  return <section className="hw-panel hw-play"><span className="hw-eyebrow">UMA VITÓRIA POR RODADA</span>
+    <h2>Desafio da lata</h2>
+    <p>Os quatro jogadores participam vendados; quem tocar o alvo com o pé primeiro vence a rodada. Depois, escolha o vencedor e registre +1 ponto. Combinem antes quantas rodadas serão jogadas.</p>
+    <div className="hw-rule-box"><strong>Segurança primeiro</strong><p>Prefiram um alvo macio no lugar da lata, mantenham o espaço livre e tenham uma pessoa de fora para acompanhar e interromper a brincadeira se necessário.</p></div>
+    <form className="hw-form" onSubmit={event => {
+      event.preventDefault()
+      if (winner) onChange([{ player: winner, game: 'lata', delta: 1 }])
+    }}><label htmlFor="hw-can-winner">Vencedor da rodada</label>
+      <select id="hw-can-winner" value={winner} onChange={event => setWinner(event.target.value as Player | '')}>
+        <option value="">Selecione o vencedor</option>{PLAYERS.map(player => <option value={player} key={player}>{name(player)}</option>)}
+      </select>
+      <button className="hw-button" disabled={disabled || !winner}>Registrar vitória +1</button>
+    </form>
+    <p className="hw-small">Registre uma vez por rodada. Use −1 no placar para corrigir; conclua o jogo depois da última rodada.</p>
+  </section>
+}
+
+export function FilmGame({ disabled, onChange }: { disabled: boolean; onChange: (changes: ScoreChange[]) => void }) {
+  const [player, setPlayer] = useState<Player | ''>('')
+  const [attempt, setAttempt] = useState('')
+  return <section className="hw-panel hw-play"><span className="hw-eyebrow">TRÊS CHANCES · UM FILME</span>
+    <h2>Adivinhe o filme</h2>
+    <p>Enquanto uma pessoa não vê a TV, a turma escolhe um filme e informa apenas sua duração. Ela escolhe um momento; mostrem a imagem desse instante para ela adivinhar.</p>
+    <p>Se errar, escolha outro instante do mesmo filme e tente novamente, até três tentativas. Acertou? Registrem o resultado uma vez; três erros valem zero. Repitam para os demais, com a mesma quantidade de filmes por jogador.</p>
+    <div className="hw-rule-box"><strong>Pontos por filme</strong><p>Acerto na 1ª tentativa: +3; na 2ª: +2; na 3ª: +1. Sem acerto: 0.</p></div>
+    <form className="hw-form" onSubmit={event => {
+      event.preventDefault()
+      const points = Number(attempt)
+      if (player && points >= 1 && points <= 3)
+        onChange([{ player, game: 'filme', delta: points }])
+    }}>
+      <label htmlFor="hw-film-player">Jogador que acertou</label>
+      <select id="hw-film-player" value={player} onChange={event => setPlayer(event.target.value as Player | '')}>
+        <option value="">Selecione o jogador</option>{PLAYERS.map(member => <option value={member} key={member}>{name(member)}</option>)}
+      </select>
+      <label htmlFor="hw-film-attempt">Tentativa do acerto</label>
+      <select id="hw-film-attempt" value={attempt} onChange={event => setAttempt(event.target.value)}>
+        <option value="">Selecione a tentativa</option><option value="3">1ª tentativa · +3</option>
+        <option value="2">2ª tentativa · +2</option><option value="1">3ª tentativa · +1</option>
+      </select>
+      <button className="hw-button" disabled={disabled || !player || !attempt}>Registrar acerto</button>
+    </form>
+    <p className="hw-small">A TV e a conferência dos acertos são presenciais. O placar é compartilhado; use +1 / −1 para corrigir.</p>
+  </section>
+}
+
 export function GameCompletion({ room, game, disabled, act }: { room: Room; game: GameId; disabled: boolean; act: Act }) {
   const completed = room.completedGames.includes(game)
   const eligible = game === 'timer' ? room.timer.rounds.every(round => round.awarded)

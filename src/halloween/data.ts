@@ -14,6 +14,8 @@ export const GAMES = [
   { id: 'timer', title: 'Timer', subtitle: 'Confie no seu sexto sentido', icon: 'timer', tag: '5 RODADAS', description: 'Sem olhar o relógio: quão perto do alvo você consegue parar?' },
   { id: 'sobrevivencia', title: 'Sobrevivência no jogo de terror', subtitle: 'Quem vai até o fim?', icon: 'skull', tag: 'CORAGEM', description: 'Preparem o jogo de terror. A sobrevivência vale pontos.' },
   { id: 'fantasia', title: 'Concurso de fantasia', subtitle: 'O público decide', icon: 'crown', tag: 'INSTAGRAM', description: 'A votação acontece no Instagram. Registrem aqui o resultado.' },
+  { id: 'lata', title: 'Desafio da lata', subtitle: 'Várias rodadas', icon: 'target', tag: 'EM GRUPO', description: 'Quatro jogadores, uma rodada e um vencedor. Quem acerta o alvo soma um ponto.' },
+  { id: 'filme', title: 'Adivinhe o filme', subtitle: 'Uma cena, três chances', icon: 'film', tag: 'NA TV', description: 'Escolha um instante do filme e tente descobrir qual é a partir da cena.' },
 ] as const
 export type GameId = typeof GAMES[number]['id']
 export type Scores = Record<GameId, Record<Player, number>>

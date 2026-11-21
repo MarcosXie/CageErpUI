@@ -4,6 +4,7 @@ export const CHAMPIONSHIP_POINTS: Record<GameId, readonly number[]> = {
   missoes: [80, 55, 30, 15], mimica: [70, 35], 'drink-russo': [60, 40, 25, 10],
   'quem-sou-eu': [60, 40, 25, 10], timer: [60, 40, 25, 10],
   sobrevivencia: [60, 40, 25, 10], fantasia: [100, 70, 40, 20],
+  lata: [60, 40, 25, 10], filme: [60, 40, 25, 10],
 }
 
 export function placementPoints(values: readonly number[], index: number, awards: readonly number[], ascending = false): number {

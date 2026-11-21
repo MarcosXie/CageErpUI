@@ -44,8 +44,9 @@ cria a sala; os demais entram pelo link `/halloween?s=<id>`. O identificador
 aleatorio funciona como chave de acesso: qualquer pessoa com o link pode editar
 o placar. Nao compartilhar publicamente.
 
-- Sete paginas: `missoes`, `mimica`, `drink-russo`, `quem-sou-eu`, `timer`,
-  `sobrevivencia` e `fantasia`, sob `/halloween/`, preservando `?s=<id>`.
+- Nove paginas: `missoes`, `mimica`, `drink-russo`, `quem-sou-eu`, `timer`,
+  `sobrevivencia`, `fantasia`, `lata` e `filme`, sob `/halloween/`,
+  preservando `?s=<id>`.
 - Resultados brutos por jogo com +1/-1, compartilhados pela API via SignalR
   (`/hubs/halloween`) com polling de recuperacao a cada 3 segundos. Pontos e
   comandos sao idempotentes; um envio pendente fica salvo na aba para reenvio
@@ -64,6 +65,8 @@ o placar. Nao compartilhar publicamente.
   | Timer | 60 / 40 / 25 / 10 |
   | Sobrevivencia | 60 / 40 / 25 / 10 (menos sustos vence) |
   | Fantasia | 100 / 70 / 40 / 20 |
+  | Desafio da lata | 60 / 40 / 25 / 10 |
+  | Adivinhe o filme | 60 / 40 / 25 / 10 |
 
   Os cards iniciais destacam o premio do vencedor no geral; na mimica, o valor
   e por integrante da dupla vencedora. Fantasia tem o maior premio da noite.
@@ -101,13 +104,22 @@ o placar. Nao compartilhar publicamente.
   conclusao disponivel depois das quatro tentativas.
 - Fantasia: salvar o link HTTPS do post no Instagram, conferir votos validos
   manualmente e registrar totais individuais. Sem login/integracao Instagram.
+- Desafio da lata: varias rodadas, um vencedor por rodada; selecione o jogador
+  e registre +1. Prefiram um alvo macio e contem com uma pessoa de fora para
+  acompanhar; mantenham o local livre.
+- Adivinhe o filme: a turma seleciona o filme na TV e informa a duracao; o jogador
+  escolhe ate tres instantes e tenta adivinhar o mesmo filme. Registre uma vez
+  o acerto na 1a, 2a ou 3a tentativa, por +3, +2 ou +1 respectivamente; tres
+  erros valem zero. A TV, tentativas e conferencia sao presenciais; so os pontos
+  sao compartilhados. Usem a mesma quantidade de filmes por jogador.
 
 Jogador, missoes e baralhos usam `sessionStorage` (privados por aba e sala,
 sobrevivem a reload; nao sao sincronizados). Ao encerrar a sessao do navegador
 esses dados podem desaparecer. Placares, Timer, votos, tentativas e conclusoes
 ficam no servidor. Salas antigas sao atualizadas automaticamente, preservando
 resultados brutos; pontos antigos da mimica sao somados por dupla. O progresso
-do antigo Timer local nao e importado para a partida compartilhada.
+do antigo Timer local nao e importado para a partida compartilhada. Salas
+anteriores recebem os dois novos placares zerados sem alterar os antigos.
 Nenhuma foto/video dos jogadores e enviada. O link da sala permite recuperar
 os placares em outro dispositivo; guarde-o antes de fechar a aba.
 

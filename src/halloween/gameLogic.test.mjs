@@ -47,7 +47,7 @@ const newRoom = () => ({
 })
 
 test('only completed games contribute weighted placement points, not raw scores', () => {
-  for (const game of ['timer', 'drink-russo', 'quem-sou-eu', 'sobrevivencia']) {
+  for (const game of ['timer', 'drink-russo', 'quem-sou-eu', 'sobrevivencia', 'lata', 'filme']) {
     const room = newRoom()
     room.scores[game] = game === 'sobrevivencia'
       ? { Andre: 0, Duda: 1, Leh: 2, Maicon: 3 } : { Andre: 20, Duda: 15, Leh: 10, Maicon: 5 }

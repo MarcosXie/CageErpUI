@@ -1,14 +1,14 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowDown, ArrowLeft, ArrowRight, Check, Copy, Crown, Drama, Ghost, GlassWater, Minus, Plus, ScrollText, Shuffle, Skull, Timer, Trophy, Users, VolumeX } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowRight, Check, Copy, Crown, Drama, Film, Ghost, GlassWater, Minus, Plus, ScrollText, Shuffle, Skull, Target, Timer, Trophy, Users, VolumeX } from 'lucide-react'
 import { api, getApiErrorMessage } from '../services/api'
 import { CHARACTERS, GAMES, MIME_PROMPTS, PLAYER_NAMES, PLAYERS, RECORDED_MISSIONS, TEAMS, UNRECORDED_MISSIONS, type GameId, type Player, type Room, type ScoreChange } from '../halloween/data'
 import { CHAMPIONSHIP_POINTS, comparePlayers, drawUnused, formatPoints, isRoom, totalScore } from '../halloween/gameLogic'
-import { ChampionshipRules, DrinkGame, FantasyGame, GameCompletion, MimeTeams, SharedTimerGame, SurvivalGame } from '../halloween/HalloweenGames'
+import { CanGame, ChampionshipRules, DrinkGame, FantasyGame, FilmGame, GameCompletion, MimeTeams, SharedTimerGame, SurvivalGame } from '../halloween/HalloweenGames'
 import { useHalloweenRoom, useSessionValue } from '../halloween/useHalloweenRoom'
 import './HalloweenPage.css'
 
-const icons = { scroll: ScrollText, drama: Drama, glass: GlassWater, ghost: Ghost, timer: Timer, skull: Skull, crown: Crown }
+const icons = { scroll: ScrollText, drama: Drama, glass: GlassWater, ghost: Ghost, timer: Timer, skull: Skull, crown: Crown, target: Target, film: Film }
 const isPlayer = (value: unknown): value is Player | null => value === null || PLAYERS.some(player => player === value)
 const photo = '/halloween/lagartixa.png'
 
@@ -27,7 +27,7 @@ function PlayerPicker({ onSelect }: { onSelect: (player: Player) => void }) {
         <button key={player} className={`hw-player hw-player-${index}`} onClick={() => onSelect(player)}>
           <span>{PLAYER_NAMES[player].slice(0, 1)}</span><strong>{PLAYER_NAMES[player]}</strong><ArrowRight size={19} />
         </button>)}</div>
-      <span className="hw-muted"><Users size={15} /> 4 amigos · 7 jogos · uma noite para lembrar</span>
+      <span className="hw-muted"><Users size={15} /> 4 amigos · {GAMES.length} jogos · uma noite para lembrar</span>
     </section>
     <figure className="hw-photo"><img src={photo} alt="Lagartixa fantasiada de bruxa entre abóboras de Halloween" /><figcaption>O CONSELHO DAS LAGARTIXAS CONVOCA VOCÊ.</figcaption></figure>
   </div>
@@ -97,7 +97,7 @@ function Scoreboard({ room, game, disabled, onChange }: { room: Room; game?: Gam
     <p className="hw-small">{game === 'mimica' ? 'Acertos da dupla. Cada integrante recebe a mesma colocação no campeonato.'
       : game === 'sobrevivencia' ? 'Menos sustos é melhor. Use +1 / −1 para registrar ou corrigir.'
         : game ? 'Resultado bruto do jogo. O ranking será convertido em pontos gerais ao concluir.'
-          : `Pontos por colocação nos ${room.completedGames.length} de 7 jogos concluídos. Não é a soma dos resultados brutos.`}</p>
+          : `Pontos por colocação nos ${room.completedGames.length} de ${GAMES.length} jogos concluídos. Não é a soma dos resultados brutos.`}</p>
   </section>
 }
 
@@ -224,10 +224,10 @@ function RoomExperience({ id, player }: { id: string; player: Player }) {
     <Routes>
       <Route index element={<>
         <section className="hw-hero"><div><span className="hw-eyebrow"><span className="hw-tiny-line" /> A NOITE É NOSSA</span><h1>Travessuras,<br />sustos e <em>disputa.</em></h1><p>O covil das Lagartixas Tetraplégicas está aberto.<br />Escolha um jogo. Cumpra sua missão. Domine o placar.</p>
-          <a className="hw-button" href="#hw-games">Que comecem os jogos <ArrowDown size={18} /></a><div className="hw-hero-meta"><span><Users size={16} /> 4 jogadores</span><span><Drama size={16} /> 7 jogos</span><span><Ghost size={16} /> zero normalidade</span></div></div>
+          <a className="hw-button" href="#hw-games">Que comecem os jogos <ArrowDown size={18} /></a><div className="hw-hero-meta"><span><Users size={16} /> 4 jogadores</span><span><Drama size={16} /> {GAMES.length} jogos</span><span><Ghost size={16} /> zero normalidade</span></div></div>
           <figure className="hw-photo"><img src={photo} alt="Lagartixa bruxa, mascote da noite, cercada por abóboras" /><figcaption><span>PROCURADA POR</span> EXCESSO DE TRAVESSURAS</figcaption><span className="hw-photo-sticker">BOO!</span></figure>
         </section>
-        <div className="hw-home-grid"><section id="hw-games"><div className="hw-section-title"><div><span className="hw-eyebrow">ESCOLHA SEU DESTINO</span><h2>O que vamos jogar?</h2></div><span className="hw-muted">07 JOGOS</span></div>
+        <div className="hw-home-grid"><section id="hw-games"><div className="hw-section-title"><div><span className="hw-eyebrow">ESCOLHA SEU DESTINO</span><h2>O que vamos jogar?</h2></div><span className="hw-muted">{String(GAMES.length).padStart(2, '0')} JOGOS</span></div>
           <div className="hw-game-grid">{GAMES.map((game, index) => {
             const Icon = icons[game.icon]
             return <Link key={game.id} to={to(`/${game.id}`)} className={`hw-game-card hw-game-card-${index}`}><div className="hw-card-top"><span className="hw-card-icon"><Icon size={24} /></span><span className="hw-tag">{game.tag}</span></div><h3>{game.title}</h3><p>{game.description}</p>
@@ -245,6 +245,8 @@ function RoomExperience({ id, player }: { id: string; player: Player }) {
               : game.id === 'timer' ? <SharedTimerGame room={room} player={player} sync={shared} />
                 : game.id === 'drink-russo' ? <DrinkGame key={player} room={room} player={player} disabled={disabled || room.completedGames.includes(game.id)} act={shared.act} />
                   : game.id === 'fantasia' ? <FantasyGame room={room} disabled={disabled || room.completedGames.includes(game.id)} act={shared.act} />
+                    : game.id === 'lata' ? <CanGame disabled={disabled || room.completedGames.includes(game.id)} onChange={shared.changeScores} />
+                      : game.id === 'filme' ? <FilmGame disabled={disabled || room.completedGames.includes(game.id)} onChange={shared.changeScores} />
                     : <SurvivalGame room={room} disabled={disabled || room.completedGames.includes(game.id)} act={shared.act} clock={shared.clock} onChange={shared.changeScores} />}
         </div><aside><Scoreboard room={room} game={game.id} disabled={disabled} onChange={shared.changeScores} /><GameCompletion room={room} game={game.id} disabled={disabled} act={shared.act} /><Scoreboard room={room} disabled={disabled} onChange={shared.changeScores} /></aside></div>
       </>} />)}
